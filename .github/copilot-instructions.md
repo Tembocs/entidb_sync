@@ -163,4 +163,31 @@ test('serializes and deserializes correctly', () {
 - Strict analysis: `strict-casts`, `strict-inference`, `strict-raw-types`
 - Conventional commits: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`
 - Library declarations use `library;` (unnamed) for internal modules
-- Doc comments on all public APIs with usage examples
+
+### Documentation Comments (Required)
+
+All public APIs **must** have documentation comments following [Effective Dart: Documentation](https://dart.dev/effective-dart/documentation):
+
+- Use `///` for doc comments (not `/* */`)
+- Start with a single-sentence summary (third person, present tense)
+- Include `@param`-style descriptions in prose, not tags
+- Add code examples in markdown fenced blocks for non-trivial APIs
+- Document return values, exceptions, and edge cases
+
+```dart
+/// Transforms a WAL record into a sync operation.
+///
+/// Returns `null` if the record belongs to an internal collection
+/// (names starting with `_`) or contains no data payload.
+///
+/// Throws [StateError] if the record's transaction is uncommitted.
+///
+/// Example:
+/// ```dart
+/// final op = transformer.transform(walRecord);
+/// if (op != null) {
+///   oplog.add(op);
+/// }
+/// ```
+SyncOperation? transform(WalRecord record);
+```
