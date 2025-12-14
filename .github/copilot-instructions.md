@@ -158,6 +158,38 @@ test('serializes and deserializes correctly', () {
 });
 ```
 
+### Testing Requirements (Mandatory)
+
+**Every feature (new or modified) MUST include extensive tests** that cover:
+
+1. **Happy path** — Normal operation with valid inputs
+2. **Edge cases** — Boundary conditions, empty inputs, maximum values
+3. **Error handling** — Invalid inputs, network failures, timeout scenarios
+4. **State transitions** — For stateful components (e.g., SyncEngine states)
+5. **Concurrency** — Race conditions, parallel operations where applicable
+6. **Integration** — Cross-component interactions
+
+**Minimum test coverage expectations:**
+- Protocol models: Round-trip serialization, equality, factory constructors
+- Middleware: Request/response transformation, error responses, configuration options
+- Services: All public methods, conflict scenarios, cursor management
+- SSE/real-time: Connection lifecycle, reconnection, filtering
+
+**Test file organization:**
+- One test file per feature/component (e.g., `sse_test.dart`, `compression_test.dart`)
+- Use `group()` to organize related tests
+- Descriptive test names that explain the scenario being tested
+
+```dart
+group('TokenBucket', () {
+  test('allows requests within limit', () { ... });
+  test('rejects requests when exhausted', () { ... });
+  test('refills over time', () { ... });  // Edge case: timing
+  test('handles burst correctly', () { ... });
+  test('tracks remaining tokens accurately', () { ... });
+});
+```
+
 ## Code Style
 
 - Strict analysis: `strict-casts`, `strict-inference`, `strict-raw-types`
