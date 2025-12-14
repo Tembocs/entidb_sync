@@ -5,14 +5,15 @@ repository: https://github.com/Tembocs/entidb_sync
 publish_to: none
 
 environment:
-  sdk: ^3.10.1
+  sdk: ^3.5.0
 
 dependencies:
   # EntiDB core - main database engine
-  entidb:
-    git:
-      url: https://github.com/Tembocs/entidb.git
-      ref: main
+  # TODO: Uncomment when SDK version is updated to 3.10.1+
+  # entidb:
+  #   git:
+  #     url: https://github.com/Tembocs/entidb.git
+  #     ref: main
   
   # Protocol definitions (local package)
   entidb_sync_protocol:

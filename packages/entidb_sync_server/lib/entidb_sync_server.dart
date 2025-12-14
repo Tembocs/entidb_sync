@@ -13,8 +13,18 @@
 /// customize authentication, scaling, and deployment strategies.
 library entidb_sync_server;
 
-// TODO: Uncomment as implementations are added
-// export 'src/config/server_config.dart';
-// export 'src/db/entidb_provider.dart';
-// export 'src/api/endpoints.dart';
-// export 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
+// Re-export protocol types for convenience
+export 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
+
+// Configuration
+export 'src/config/server_config.dart';
+
+// Sync service
+export 'src/sync/sync_service.dart';
+
+// API endpoints
+export 'src/api/endpoints.dart';
+
+// Middleware
+export 'src/middleware/cors_middleware.dart';
+export 'src/middleware/logging_middleware.dart';

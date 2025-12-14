@@ -1,86 +1,66 @@
 #!/usr/bin/env dart
-// TODO: Uncomment when dependencies are installed
-// import 'package:entidb_sync_server/entidb_sync_server.dart';
-// import 'package:logging/logging.dart';
-// import 'package:shelf/shelf.dart' as shelf;
-// import 'package:shelf/shelf_io.dart' as io;
+
+import 'dart:io';
+
+import 'package:entidb_sync_server/entidb_sync_server.dart';
+import 'package:logging/logging.dart';
+import 'package:shelf/shelf.dart' as shelf;
+import 'package:shelf/shelf_io.dart' as io;
 
 void main(List<String> arguments) async {
-  print('EntiDB Sync Server');
-  print('===================');
-  print('');
-  print('TODO: Server implementation requires:');
-  print('  1. Run: dart pub get');
-  print('  2. Install shelf, logging dependencies');
-  print('  3. Uncomment implementation code');
-  print('');
-}
-
-/* TODO: Uncomment when dependencies are installed
-// Configure logging
-void _startServer() async {
-  Logger.root.level = Level.INFO;
-  Logger.root.onRecord.listen((record) {
-    print('${record.level.name}: ${record.time}: ${record.message}');
-  });
-
+  // Configure logging
+  _setupLogging();
   final log = Logger('Server');
 
-  // Parse environment configuration
-  final port = int.parse(Platform.environment['PORT'] ?? '8080');
-  final host = Platform.environment['HOST'] ?? '0.0.0.0';
+  // Load configuration
+  final config = ServerConfig.fromEnvironment();
+  log.info('Starting EntiDB Sync Server with config: $config');
 
-  // TODO: Initialize EntiDB instance for server storage
-  // final db = await EntiDB.open('sync_server.db');
+  // Create sync service
+  final syncService = SyncService();
 
-  // TODO: Create sync service
-  // final syncService = SyncService(db);
+  // Create router
+  final router = createSyncRouter(syncService);
 
-  // Create HTTP handler
+  // Build handler pipeline
   final handler = const shelf.Pipeline()
-      .addMiddleware(shelf.logRequests())
-      .addMiddleware(_corsHeaders())
-      .addHandler(_router);
+      .addMiddleware(createLoggingMiddleware(log))
+      .addMiddleware(createCorsMiddleware(
+        allowedOrigins: config.corsAllowedOrigins,
+      ))
+      .addHandler(router.call);
 
   // Start server
-  final server = await io.serve(handler, host, port);
+  final server = await io.serve(handler, config.host, config.port);
+
   log.info('Server listening on http://${server.address.host}:${server.port}');
+  log.info('Endpoints:');
+  log.info('  GET  /health       - Health check');
+  log.info('  GET  /v1/version   - Protocol version');
+  log.info('  POST /v1/handshake - Client handshake');
+  log.info('  POST /v1/pull      - Pull operations');
+  log.info('  POST /v1/push      - Push operations');
+  log.info('  GET  /v1/stats     - Server statistics');
+
+  // Handle shutdown signals
+  ProcessSignal.sigint.watch().listen((_) async {
+    log.info('Shutting down...');
+    await server.close();
+    exit(0);
+  });
 }
 
-/// CORS middleware for web clients
-shelf.Middleware _corsHeaders() {
-  return shelf.createMiddleware(
-    requestHandler: (shelf.Request request) {
-      if (request.method == 'OPTIONS') {
-        return shelf.Response.ok(null, headers: _corsHeadersMap);
-      }
-      return null;
-    },
-    responseHandler: (shelf.Response response) {
-      return response.change(headers: _corsHeadersMap);
-    },
-  );
+void _setupLogging() {
+  Logger.root.level = Level.INFO;
+  Logger.root.onRecord.listen((record) {
+    final time = record.time.toIso8601String().substring(11, 23);
+    print(
+        '$time [${record.level.name}] ${record.loggerName}: ${record.message}');
+    if (record.error != null) {
+      print('  Error: ${record.error}');
+    }
+    if (record.stackTrace != null) {
+      print('  Stack: ${record.stackTrace}');
+    }
+  });
 }
-
-const _corsHeadersMap = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-};
-
-/// Router for sync endpoints
-shelf.Response _router(shelf.Request request) {
-  final path = request.url.path;
-
-  // TODO: Implement sync endpoints
-  if (path == 'sync/handshake') {
-    return shelf.Response.ok('{"version": 1}');
-  } else if (path == 'sync/pull') {
-    return shelf.Response.ok('{"operations": []}');
-  } else if (path == 'sync/push') {
-    return shelf.Response.ok('{"accepted": 0, "conflicts": []}');
-  }
-
-  return shelf.Response.notFound('Not found');
-}
-*/
