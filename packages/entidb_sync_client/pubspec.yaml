@@ -5,11 +5,10 @@ repository: https://github.com/Tembocs/entidb_sync
 publish_to: none
 
 environment:
-  sdk: ^3.10.1
+  sdk: ^3.10.0
 
 dependencies:
   # EntiDB core - main database engine
-  # Note: Update path or use pub.dev version when published
   entidb:
     git:
       url: https://github.com/Tembocs/entidb.git
@@ -41,11 +40,7 @@ dev_dependencies:
   # Testing framework
   test: ^1.25.0
   
-  # Mock HTTP responses
-  mockito: ^5.4.5
-  build_runner: ^2.4.14
-  
   # Linting
-  lints: ^5.0.0
+  lints: ^6.0.0
 
 # Configuration

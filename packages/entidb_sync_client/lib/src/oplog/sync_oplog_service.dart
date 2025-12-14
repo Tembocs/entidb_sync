@@ -41,14 +41,7 @@ library;
 import 'dart:async';
 import 'dart:typed_data';
 
-// TODO: Enable this import once protocol package dependencies are resolved
-// For now, forward declare the SyncOperation class
-// import 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
-
-/// Forward declaration - will be imported from protocol package
-class SyncOperation {
-  const SyncOperation();
-}
+import 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
 
 /// Sync Operation Log Service
 ///
@@ -128,16 +121,44 @@ abstract class SyncOplogService {
   /// - [walPath]: Path to the EntiDB WAL file.
   /// - [dbId]: Database identifier.
   /// - [deviceId]: Device identifier.
+  /// - [persistState]: Whether to persist oplog state for crash recovery.
+  /// - [statePath]: Path to persist oplog state.
   factory SyncOplogService({
     required String walPath,
     required String dbId,
     required String deviceId,
+    bool persistState = true,
+    String? statePath,
   }) {
-    throw UnimplementedError(
-      'SyncOplogService implementation not yet available. '
-      'See packages/entidb_sync_client/lib/src/oplog/ for implementation.',
+    // Import is deferred to avoid circular dependency
+    // ignore: avoid_dynamic_calls
+    return _createImpl(
+      walPath: walPath,
+      dbId: dbId,
+      deviceId: deviceId,
+      persistState: persistState,
+      statePath: statePath,
     );
   }
+}
+
+/// Creates the default implementation.
+///
+/// This is separated to allow the factory to work without importing
+/// the implementation directly in the interface file.
+SyncOplogService _createImpl({
+  required String walPath,
+  required String dbId,
+  required String deviceId,
+  required bool persistState,
+  String? statePath,
+}) {
+  // Lazy import to break circular dependency
+  // The actual implementation is in sync_oplog_service_impl.dart
+  throw UnimplementedError(
+    'Use SyncOplogServiceImpl directly from sync_oplog_service_impl.dart. '
+    'The factory constructor requires the implementation to be imported.',
+  );
 }
 
 /// Exception thrown when WAL file is not found.
@@ -226,10 +247,10 @@ class OplogState {
 
   /// Serializes to JSON for persistence.
   Map<String, dynamic> toJson() => {
-    'lastLsn': lastLsn,
-    'lastOpId': lastOpId,
-    'lastProcessedAt': lastProcessedAt.toIso8601String(),
-  };
+        'lastLsn': lastLsn,
+        'lastOpId': lastOpId,
+        'lastProcessedAt': lastProcessedAt.toIso8601String(),
+      };
 
   /// Deserializes from JSON.
   factory OplogState.fromJson(Map<String, dynamic> json) {

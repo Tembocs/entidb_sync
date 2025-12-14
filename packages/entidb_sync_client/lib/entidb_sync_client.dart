@@ -24,11 +24,18 @@
 /// ```
 library entidb_sync_client;
 
+// Re-export protocol types for convenience
+export 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
+
 // Oplog service (WAL observation)
 export 'src/oplog/sync_oplog_service.dart';
+export 'src/oplog/sync_oplog_service_impl.dart';
 
-// TODO: Uncomment as implementations are added
-// export 'src/sync_engine.dart';
-// export 'src/conflict/conflict_handler.dart';
-// export 'src/conflict/resolvers.dart';
-// export 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
+// HTTP transport
+export 'src/transport/http_transport.dart';
+
+// Sync engine
+export 'src/sync/sync_engine.dart';
+
+// Conflict resolution
+export 'src/conflict/resolvers.dart';

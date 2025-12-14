@@ -156,6 +156,45 @@ Using Dart everywhere provides:
 
 The **protocol is language-agnostic**, but the **reference implementation is Dart-first**.
 
+### 4.3 Dependency Constraints (Non-Negotiable)
+
+> **No dependencies that require code generation are permitted.**
+
+This project explicitly prohibits:
+
+* `build_runner` as a runtime or dev dependency for production code
+* `freezed`, `json_serializable`, `built_value`, or similar code-gen packages
+* Any package that requires `dart run build_runner build` to function
+
+**Rationale:**
+
+* Code generation adds complexity to the build process
+* Generated code creates merge conflicts and maintenance burden
+* Manual implementation ensures full control and understanding
+* Reduces dependency surface and potential security issues
+
+All models, serialization, and equality implementations must be **hand-written**.
+
+### 4.4 Database Engine Exclusivity (Non-Negotiable)
+
+> **EntiDB is the only database engine permitted in this project.**
+
+There is:
+
+* No SQLite, Hive, Isar, or ObjectBox
+* No Firebase, Supabase, or cloud-specific databases
+* No PostgreSQL, MySQL, or other external database engines
+* No abstraction layers that support multiple database backends
+
+**Rationale:**
+
+* This project exists specifically to provide synchronization for EntiDB
+* EntiDB runs on both client and server (architectural invariant from Section 2)
+* Adding alternative databases would violate the core design principle
+* The sync protocol is optimized for EntiDB's CBOR-native storage format
+
+All persistence, both client-side and server-side, uses **EntiDB exclusively**.
+
 ---
 
 ## 5. Explicit Endpoint Configuration (No Discovery)

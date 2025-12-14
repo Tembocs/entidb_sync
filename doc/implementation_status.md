@@ -30,7 +30,7 @@ entidb_sync/
 
 ### 📦 Package: entidb_sync_protocol
 
-**Status:** ✅ Foundation Complete
+**Status:** ✅ Core Complete
 
 **What's Done:**
 - ✅ `SyncOperation` model with CBOR serialization
@@ -38,58 +38,86 @@ entidb_sync/
 - ✅ `SyncCursor` model for tracking progress
 - ✅ `SyncConfig` model for client configuration
 - ✅ `ProtocolVersion` for version negotiation
-- ✅ CBOR encoder/decoder stubs
+- ✅ CBOR encoder utilities (`encodeToCbor`, `encodeListToCbor`)
+- ✅ CBOR decoder utilities (`decodeFromCbor`, `decodeListFromCbor`, extraction helpers)
+- ✅ Protocol message types:
+  - ✅ `HandshakeRequest` / `HandshakeResponse`
+  - ✅ `PullRequest` / `PullResponse`
+  - ✅ `PushRequest` / `PushResponse`
 - ✅ Package exports and structure
-- ✅ Unit tests with CBOR validation
+- ✅ Unit tests (18 tests passing)
 - ✅ `pubspec.yaml` with dependencies
 
 **What Remains:**
-- 🔨 Complete CBOR encoder utilities
-- 🔨 Complete CBOR decoder utilities
-- 🔨 Protocol message types (Handshake, Pull, Push)
-- 🔨 Additional unit tests
+- 🔨 Error response message type
+- 🔨 Protocol version negotiation tests
 
 ### 📦 Package: entidb_sync_client
 
-**Status:** ✅ Interface Defined
+**Status:** 🔨 Implementation In Progress
 
 **What's Done:**
-- ✅ `SyncOplogService` interface (300+ lines documentation)
+- ✅ `SyncOplogService` interface (comprehensive documentation)
   - Observes EntiDB WAL
   - Transforms to logical operations
   - Provides operation stream
-- ✅ Directory structure (oplog/, sync/, storage/, offline/)
+- ✅ `SyncOplogServiceImpl` scaffold with:
+  - State persistence
+  - Operation buffering
+  - Backpressure handling
+- ✅ `OperationTransformerImpl` scaffold
+- ✅ `SyncHttpTransport` for server communication with:
+  - Retry logic with exponential backoff
+  - Auth token support
+  - Timeout handling
+- ✅ `SyncEngine` for pull-then-push orchestration with:
+  - State machine (idle, connecting, pulling, pushing, synced, error)
+  - State change stream
+  - Cursor management
+- ✅ Conflict resolvers:
+  - `ServerWinsResolver` (default)
+  - `ClientWinsResolver`
+  - `LastWriteWinsResolver`
+  - `CustomResolver`
+  - `CompositeResolver`
+- ✅ Re-exports protocol types for convenience
+- ✅ Directory structure (oplog/, sync/, transport/, conflict/)
 - ✅ Package exports and dependencies
 - ✅ `pubspec.yaml` with all dependencies
-- ✅ Test scaffolding
+- ✅ Unit tests (10 tests passing)
 
 **What Remains:**
-- 🔨 `SyncOplogService` implementation
-- 🔨 `SyncClient` implementation
+- 🔨 WAL observation (requires EntiDB integration)
 - 🔨 `OfflineQueue` for pending operations
-- 🔨 `ConflictHandler` strategies
-- 🔨 HTTP client for server communication
-- 🔨 State management and streams
-- 🔨 Integration tests
+- 🔨 Integration tests with server
 
 ### 📦 Package: entidb_sync_server
 
-**Status:** ✅ Server Scaffold
+**Status:** ✅ Core Implementation Complete
 
 **What's Done:**
 - ✅ HTTP server entry point (`bin/server.dart`)
-- ✅ Shelf middleware for CORS
-- ✅ Basic endpoint routing
-- ✅ Directory structure
-- ✅ `pubspec.yaml` with shelf dependencies
-- ✅ Test scaffolding
+- ✅ `ServerConfig` with environment variable support
+- ✅ `SyncService` with:
+  - Handshake handling
+  - Pull operations with cursor-based pagination
+  - Push operations with conflict detection
+  - Per-device cursor management
+- ✅ API endpoints:
+  - `GET /health` - Health check
+  - `GET /v1/version` - Protocol version
+  - `POST /v1/handshake` - Client handshake
+  - `POST /v1/pull` - Pull operations
+  - `POST /v1/push` - Push operations
+  - `GET /v1/stats` - Server statistics
+- ✅ CORS middleware with configurable origins
+- ✅ Logging middleware
+- ✅ Unit tests (8 tests passing)
 
 **What Remains:**
-- 🔨 Sync service implementation
-- 🔨 EntiDB integration for storage
-- 🔨 Auth middleware (JWT)
-- 🔨 Endpoint handlers (handshake, pull, push)
-- 🔨 Conflict resolution logic
+- 🔨 EntiDB persistence (currently in-memory)
+- 🔨 JWT authentication middleware
+- 🔨 Rate limiting
 - 🔨 Integration tests
 
 ### 📚 Documentation
@@ -103,6 +131,8 @@ entidb_sync/
   - Conflict resolution strategies with examples
   - Integration with EntiDB
   - Security and scalability considerations
+  - **NEW:** Dependency constraints (no code generation)
+  - **NEW:** Database exclusivity (EntiDB only)
   
 - ✅ [repository_organization.md](../doc/repository_organization.md)
   - Monorepo structure

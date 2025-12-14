@@ -4,7 +4,7 @@ version: 0.1.0
 repository: https://github.com/Tembocs/entidb_sync
 
 environment:
-  sdk: ^3.10.1
+  sdk: ^3.10.0
 
 dependencies:
   # CBOR encoding/decoding (matches EntiDB core)
@@ -18,7 +18,7 @@ dev_dependencies:
   test: ^1.25.0
   
   # Linting
-  lints: ^5.0.0
+  lints: ^6.0.0
 
 # Configuration
 # This package is pure protocol/data models with no side effects
