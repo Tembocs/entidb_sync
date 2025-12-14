@@ -19,7 +19,10 @@ export 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
 // Configuration
 export 'src/config/server_config.dart';
 
-// Sync service
+// Database
+export 'src/db/entidb_sync_service.dart';
+
+// Sync service (in-memory for testing)
 export 'src/sync/sync_service.dart';
 
 // API endpoints

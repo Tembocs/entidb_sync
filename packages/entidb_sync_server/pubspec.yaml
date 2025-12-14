@@ -50,6 +50,10 @@ dev_dependencies:
   # HTTP client for testing endpoints
   http: ^1.2.0
   
+  # Sync client for integration tests
+  entidb_sync_client:
+    path: ../entidb_sync_client
+  
   # Linting
   lints: ^6.0.0
 
