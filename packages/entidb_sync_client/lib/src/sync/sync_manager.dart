@@ -72,23 +72,23 @@ class SyncManagerConfig {
 
   /// Creates configuration for real-time sync (minimal debounce).
   const SyncManagerConfig.realtime()
-      : debounceDelay = const Duration(milliseconds: 100),
-        periodicSyncInterval = const Duration(minutes: 1),
-        maxBatchSize = 50,
-        syncOnStart = true,
-        autoRetry = true,
-        retryDelay = const Duration(seconds: 2),
-        maxRetryAttempts = 5;
+    : debounceDelay = const Duration(milliseconds: 100),
+      periodicSyncInterval = const Duration(minutes: 1),
+      maxBatchSize = 50,
+      syncOnStart = true,
+      autoRetry = true,
+      retryDelay = const Duration(seconds: 2),
+      maxRetryAttempts = 5;
 
   /// Creates configuration for battery-conscious sync.
   const SyncManagerConfig.batterySaver()
-      : debounceDelay = const Duration(seconds: 5),
-        periodicSyncInterval = const Duration(minutes: 15),
-        maxBatchSize = 200,
-        syncOnStart = true,
-        autoRetry = true,
-        retryDelay = const Duration(seconds: 30),
-        maxRetryAttempts = 3;
+    : debounceDelay = const Duration(seconds: 5),
+      periodicSyncInterval = const Duration(minutes: 15),
+      maxBatchSize = 200,
+      syncOnStart = true,
+      autoRetry = true,
+      retryDelay = const Duration(seconds: 30),
+      maxRetryAttempts = 3;
 }
 
 /// State of the sync manager.
@@ -163,7 +163,8 @@ class SyncStats {
   }
 
   @override
-  String toString() => 'SyncStats(pushed: $totalPushed, pulled: $totalPulled, '
+  String toString() =>
+      'SyncStats(pushed: $totalPushed, pulled: $totalPulled, '
       'conflicts: $totalConflicts, cycles: $syncCycles, pending: $pendingCount)';
 }
 
@@ -218,10 +219,10 @@ class SyncManager {
     required OfflineQueue offlineQueue,
     required SyncEngine syncEngine,
     SyncManagerConfig config = const SyncManagerConfig(),
-  })  : _oplogService = oplogService,
-        _offlineQueue = offlineQueue,
-        _syncEngine = syncEngine,
-        _config = config {
+  }) : _oplogService = oplogService,
+       _offlineQueue = offlineQueue,
+       _syncEngine = syncEngine,
+       _config = config {
     // Wire up the sync engine callbacks
     _syncEngine.onGetPendingOperations = _getPendingOperations;
   }
@@ -366,8 +367,10 @@ class SyncManager {
 
   /// Called when a local change is detected from WAL.
   void _onLocalChange(SyncOperation operation) {
-    _log.fine('Local change detected: ${operation.opType} '
-        '${operation.collection}/${operation.entityId}');
+    _log.fine(
+      'Local change detected: ${operation.opType} '
+      '${operation.collection}/${operation.entityId}',
+    );
 
     // Add to offline queue
     _offlineQueue.enqueue(operation);
@@ -451,8 +454,10 @@ class SyncManager {
       _syncResultController.add(result);
 
       if (result.isSuccess) {
-        _log.info('Sync completed: ${result.pulledCount} pulled, '
-            '${result.pushedCount} pushed');
+        _log.info(
+          'Sync completed: ${result.pulledCount} pulled, '
+          '${result.pushedCount} pushed',
+        );
       } else {
         _log.warning('Sync failed: ${result.error}');
         _stats = _stats.copyWith(failedAttempts: _stats.failedAttempts + 1);
@@ -475,8 +480,7 @@ class SyncManager {
   /// Schedules a retry after failed sync.
   void _scheduleRetry() {
     _retryAttempts++;
-    _log.info(
-        'Scheduling retry $_retryAttempts/${_config.maxRetryAttempts}');
+    _log.info('Scheduling retry $_retryAttempts/${_config.maxRetryAttempts}');
 
     _retryTimer?.cancel();
     _retryTimer = Timer(_config.retryDelay, () {

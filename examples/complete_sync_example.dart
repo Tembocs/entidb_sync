@@ -108,11 +108,23 @@ Future<void> main() async {
         entityId: 'user-$i',
         entityVersion: DateTime.now().millisecondsSinceEpoch,
         opType: OperationType.upsert,
-        entityCbor: Uint8List.fromList([0xA1, 0x64, 0x6E, 0x61, 0x6D, 0x65, 
-            0x66, 0x55, 0x73, 0x65, 0x72, 0x20 + i]), // CBOR: {"name": "User X"}
+        entityCbor: Uint8List.fromList([
+          0xA1,
+          0x64,
+          0x6E,
+          0x61,
+          0x6D,
+          0x65,
+          0x66,
+          0x55,
+          0x73,
+          0x65,
+          0x72,
+          0x20 + i
+        ]), // CBOR: {"name": "User X"}
         timestampMs: DateTime.now().millisecondsSinceEpoch,
       );
-      
+
       await queue1.enqueue(op);
       log.info('  Created user-$i');
     }

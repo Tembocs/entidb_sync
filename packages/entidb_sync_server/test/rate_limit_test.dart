@@ -102,10 +102,12 @@ void main() {
     late RateLimiter limiter;
 
     setUp(() {
-      limiter = RateLimiter(const RateLimitConfig(
-        maxRequests: 3,
-        window: const Duration(seconds: 1),
-      ));
+      limiter = RateLimiter(
+        const RateLimitConfig(
+          maxRequests: 3,
+          window: const Duration(seconds: 1),
+        ),
+      );
     });
 
     tearDown(() {

@@ -38,9 +38,9 @@ void main(List<String> arguments) async {
   // Build handler pipeline with all middleware
   final handler = const shelf.Pipeline()
       .addMiddleware(createLoggingMiddleware(log))
-      .addMiddleware(createCorsMiddleware(
-        allowedOrigins: config.corsAllowedOrigins,
-      ))
+      .addMiddleware(
+        createCorsMiddleware(allowedOrigins: config.corsAllowedOrigins),
+      )
       .addMiddleware(createRateLimitMiddleware(rateLimitConfig))
       .addMiddleware(createJwtAuthMiddleware(jwtConfig))
       .addHandler(router.call);
@@ -74,7 +74,8 @@ void _setupLogging() {
   Logger.root.onRecord.listen((record) {
     final time = record.time.toIso8601String().substring(11, 23);
     print(
-        '$time [${record.level.name}] ${record.loggerName}: ${record.message}');
+      '$time [${record.level.name}] ${record.loggerName}: ${record.message}',
+    );
     if (record.error != null) {
       print('  Error: ${record.error}');
     }

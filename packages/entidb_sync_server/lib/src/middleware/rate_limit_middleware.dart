@@ -35,19 +35,19 @@ class RateLimitConfig {
 
   /// Creates a strict rate limit configuration.
   const RateLimitConfig.strict()
-      : maxRequests = 30,
-        window = const Duration(minutes: 1),
-        includeHeaders = true,
-        exemptPaths = const ['/health'],
-        perClient = true;
+    : maxRequests = 30,
+      window = const Duration(minutes: 1),
+      includeHeaders = true,
+      exemptPaths = const ['/health'],
+      perClient = true;
 
   /// Creates a lenient rate limit configuration.
   const RateLimitConfig.lenient()
-      : maxRequests = 1000,
-        window = const Duration(minutes: 1),
-        includeHeaders = true,
-        exemptPaths = const ['/health'],
-        perClient = true;
+    : maxRequests = 1000,
+      window = const Duration(minutes: 1),
+      includeHeaders = true,
+      exemptPaths = const ['/health'],
+      perClient = true;
 }
 
 /// Token bucket for rate limiting.
@@ -58,11 +58,9 @@ class TokenBucket {
   int _tokens;
   DateTime _lastRefill;
 
-  TokenBucket({
-    required this.maxTokens,
-    required this.refillInterval,
-  })  : _tokens = maxTokens,
-        _lastRefill = DateTime.now();
+  TokenBucket({required this.maxTokens, required this.refillInterval})
+    : _tokens = maxTokens,
+      _lastRefill = DateTime.now();
 
   /// Attempts to consume a token.
   ///
@@ -100,8 +98,7 @@ class TokenBucket {
       // Calculate how many refills have occurred
       final refills = elapsed.inMicroseconds ~/ refillInterval.inMicroseconds;
       _tokens = (_tokens + refills).clamp(0, maxTokens);
-      _lastRefill =
-          _lastRefill.add(refillInterval * refills);
+      _lastRefill = _lastRefill.add(refillInterval * refills);
     }
   }
 }
@@ -136,9 +133,7 @@ class RateLimiter {
   ///
   /// Returns rate limit info including whether allowed and headers.
   RateLimitResult check(String clientId) {
-    final bucket = config.perClient
-        ? _getBucket(clientId)
-        : _globalBucket;
+    final bucket = config.perClient ? _getBucket(clientId) : _globalBucket;
 
     final allowed = bucket.tryConsume();
 
@@ -199,10 +194,10 @@ class RateLimitResult {
 
   /// Gets rate limit headers.
   Map<String, String> get headers => {
-        'X-RateLimit-Limit': limit.toString(),
-        'X-RateLimit-Remaining': remaining.toString(),
-        'X-RateLimit-Reset': resetIn.inSeconds.toString(),
-      };
+    'X-RateLimit-Limit': limit.toString(),
+    'X-RateLimit-Remaining': remaining.toString(),
+    'X-RateLimit-Reset': resetIn.inSeconds.toString(),
+  };
 }
 
 /// Creates rate limiting middleware.
@@ -289,7 +284,9 @@ bool _isExempt(String path, List<String> exemptPaths) {
 
 /// Creates a rate limit exceeded response.
 Response _rateLimitExceededResponse(
-    RateLimitResult result, bool includeHeaders) {
+  RateLimitResult result,
+  bool includeHeaders,
+) {
   final error = ErrorResponse(
     code: SyncErrorCode.rateLimitExceeded,
     message: 'Rate limit exceeded. Try again in ${result.resetIn.inSeconds}s.',
