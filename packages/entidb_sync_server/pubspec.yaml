@@ -9,11 +9,10 @@ environment:
 
 dependencies:
   # EntiDB core - main database engine
-  # TODO: Uncomment when SDK version is updated to 3.10.1+
-  # entidb:
-  #   git:
-  #     url: https://github.com/Tembocs/entidb.git
-  #     ref: main
+  entidb:
+    git:
+      url: https://github.com/Tembocs/entidb.git
+      ref: main
   
   # Protocol definitions (local package)
   entidb_sync_protocol:

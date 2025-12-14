@@ -26,5 +26,6 @@ export 'src/sync/sync_service.dart';
 export 'src/api/endpoints.dart';
 
 // Middleware
+export 'src/middleware/auth_middleware.dart';
 export 'src/middleware/cors_middleware.dart';
 export 'src/middleware/logging_middleware.dart';
