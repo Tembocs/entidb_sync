@@ -24,5 +24,8 @@ export 'src/messages/messages.dart';
 export 'src/cbor/encoders.dart';
 export 'src/cbor/decoders.dart';
 
+// Delta encoding for efficient updates
+export 'src/delta/delta_encoding.dart';
+
 // Protocol versioning
 export 'src/protocol_version.dart';

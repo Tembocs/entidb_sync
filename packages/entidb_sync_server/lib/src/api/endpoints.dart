@@ -10,6 +10,8 @@ import 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
+import '../metrics/prometheus_metrics.dart';
+import '../middleware/metrics_middleware.dart';
 import '../sse/sse_manager.dart';
 import '../sync/sync_service.dart';
 
@@ -28,6 +30,9 @@ Router createSyncRouter(SyncService syncService, {SseManager? sseManager}) {
   router.get('/health', (Request request) {
     return Response.ok('{"status": "ok"}', headers: _jsonHeaders);
   });
+
+  // Prometheus metrics endpoint
+  router.get('/metrics', metricsHandler);
 
   // Protocol version info
   router.get('/v1/version', (Request request) {

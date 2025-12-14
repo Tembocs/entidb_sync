@@ -1,0 +1,196 @@
+# EntiDB Sync CI/CD Pipeline
+#
+# Runs tests on push/PR to main branch and validates code quality.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  DART_SDK_VERSION: '3.10.0'
+
+jobs:
+  analyze:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_SDK_VERSION }}
+
+      - name: Install dependencies (protocol)
+        working-directory: packages/entidb_sync_protocol
+        run: dart pub get
+
+      - name: Install dependencies (client)
+        working-directory: packages/entidb_sync_client
+        run: dart pub get
+
+      - name: Install dependencies (server)
+        working-directory: packages/entidb_sync_server
+        run: dart pub get
+
+      - name: Analyze code
+        run: dart analyze --fatal-infos
+
+  format:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_SDK_VERSION }}
+
+      - name: Check formatting
+        run: dart format --set-exit-if-changed .
+
+  test-protocol:
+    name: Test Protocol Package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_SDK_VERSION }}
+
+      - name: Install dependencies
+        working-directory: packages/entidb_sync_protocol
+        run: dart pub get
+
+      - name: Run tests
+        working-directory: packages/entidb_sync_protocol
+        run: dart test --reporter=github
+
+  test-client:
+    name: Test Client Package
+    runs-on: ubuntu-latest
+    needs: test-protocol
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_SDK_VERSION }}
+
+      - name: Install dependencies (protocol)
+        working-directory: packages/entidb_sync_protocol
+        run: dart pub get
+
+      - name: Install dependencies (client)
+        working-directory: packages/entidb_sync_client
+        run: dart pub get
+
+      - name: Run tests
+        working-directory: packages/entidb_sync_client
+        run: dart test --reporter=github
+
+  test-server:
+    name: Test Server Package
+    runs-on: ubuntu-latest
+    needs: test-protocol
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_SDK_VERSION }}
+
+      - name: Install dependencies (protocol)
+        working-directory: packages/entidb_sync_protocol
+        run: dart pub get
+
+      - name: Install dependencies (client)
+        working-directory: packages/entidb_sync_client
+        run: dart pub get
+
+      - name: Install dependencies (server)
+        working-directory: packages/entidb_sync_server
+        run: dart pub get
+
+      - name: Run tests
+        working-directory: packages/entidb_sync_server
+        run: dart test --reporter=github
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    needs: [test-protocol, test-client, test-server]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_SDK_VERSION }}
+
+      - name: Install dependencies (all packages)
+        run: |
+          cd packages/entidb_sync_protocol && dart pub get
+          cd ../entidb_sync_client && dart pub get
+          cd ../entidb_sync_server && dart pub get
+
+      - name: Run tests with coverage (protocol)
+        working-directory: packages/entidb_sync_protocol
+        run: dart test --coverage=coverage
+
+      - name: Run tests with coverage (client)
+        working-directory: packages/entidb_sync_client
+        run: dart test --coverage=coverage
+
+      - name: Run tests with coverage (server)
+        working-directory: packages/entidb_sync_server
+        run: dart test --coverage=coverage
+
+      # Optionally upload to Codecov
+      # - uses: codecov/codecov-action@v3
+      #   with:
+      #     files: packages/*/coverage/lcov.info
+
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+    needs: [analyze, format]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_SDK_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          cd packages/entidb_sync_protocol && dart pub get
+          cd ../entidb_sync_client && dart pub get
+          cd ../entidb_sync_server && dart pub get
+
+      - name: Compile server
+        working-directory: packages/entidb_sync_server
+        run: dart compile exe bin/server.dart -o server
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: docker build -t entidb-sync-server:${{ github.sha }} .
+
+      # Optionally push to registry
+      # - name: Push to registry
+      #   run: |
+      #     docker tag entidb-sync-server:${{ github.sha }} ghcr.io/${{ github.repository }}:latest
+      #     docker push ghcr.io/${{ github.repository }}:latest

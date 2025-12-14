@@ -38,6 +38,9 @@ export 'src/queue/offline_queue.dart';
 // HTTP transport
 export 'src/transport/http_transport.dart';
 
+// WebSocket transport for bidirectional real-time sync
+export 'src/transport/websocket_transport.dart';
+
 // Sync engine
 export 'src/sync/sync_engine.dart';
 export 'src/sync/sync_manager.dart';

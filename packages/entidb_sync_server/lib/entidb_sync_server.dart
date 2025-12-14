@@ -32,9 +32,16 @@ export 'src/api/endpoints.dart';
 // SSE (Server-Sent Events) for real-time updates
 export 'src/sse/sse_manager.dart';
 
+// WebSocket support for bidirectional real-time sync
+export 'src/websocket/websocket_manager.dart';
+
+// Metrics
+export 'src/metrics/prometheus_metrics.dart';
+
 // Middleware
 export 'src/middleware/auth_middleware.dart';
 export 'src/middleware/compression_middleware.dart';
 export 'src/middleware/cors_middleware.dart';
 export 'src/middleware/logging_middleware.dart';
+export 'src/middleware/metrics_middleware.dart';
 export 'src/middleware/rate_limit_middleware.dart';

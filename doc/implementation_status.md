@@ -1,6 +1,6 @@
 # EntiDB Sync - Implementation Status
 
-**Last Updated:** 2025-01-18
+**Last Updated:** 2025-01-19
 
 ## Quick Summary
 
@@ -47,9 +47,13 @@ entidb_sync/
   - ✅ `HandshakeRequest` / `HandshakeResponse`
   - ✅ `PullRequest` / `PullResponse`
   - ✅ `PushRequest` / `PushResponse`
-  - ✅ `ErrorResponse` with typed `SyncErrorCode`
-- ✅ Package exports and structure
-- ✅ Unit tests (18 tests passing)
+  - ✅ `ErrorResponse` with typed `SyncErrorCode`- ✅ **NEW:** Delta encoding for efficient sync:
+  - `DeltaEncoder` for field-level diffing
+  - `DeltaDecoder` for applying patches
+  - `DeltaPatch` and `DeltaOperation` models
+  - Operations: set, remove, increment, arrayAppend, arrayRemove, replace
+  - `DeltaSizeEstimator` for threshold decisions- ✅ Package exports and structure
+- ✅ Unit tests (44 tests passing)
 - ✅ `pubspec.yaml` with dependencies
 
 **What Remains:**
@@ -103,11 +107,16 @@ entidb_sync/
   - Pause/resume support
   - Retry with exponential backoff
   - Sync statistics tracking
+- ✅ **NEW:** WebSocket transport:
+  - `WebSocketTransport` for real-time bidirectional sync
+  - Auto-reconnect with exponential backoff
+  - State machine (disconnected, connecting, connected, reconnecting)
+  - Operations stream for incoming server operations
 - ✅ Re-exports protocol types for convenience
 - ✅ Directory structure (oplog/, sync/, transport/, conflict/, queue/)
 - ✅ Package exports and dependencies
 - ✅ `pubspec.yaml` with all dependencies
-- ✅ Unit tests (41 tests passing)
+- ✅ Unit tests (67 tests passing)
 
 **What Remains:**
 - 🔨 Real-time WAL file watching (polling sufficient for now)
@@ -160,7 +169,19 @@ entidb_sync/
   - Content-Encoding support
   - Configurable thresholds
   - Compression statistics tracking
-- ✅ Unit tests (70 tests passing)
+- ✅ **NEW:** WebSocket transport:
+  - `WebSocketManager` for connection lifecycle
+  - Bidirectional real-time sync
+  - Subscription-based broadcasting
+  - Keepalive pings
+  - Connection limits
+- ✅ **NEW:** Prometheus metrics:
+  - `Counter`, `Gauge`, `Histogram` metric types
+  - Pre-defined `SyncMetrics` singleton
+  - `createMetricsMiddleware()` for automatic collection
+  - `metricsHandler()` for `/metrics` endpoint
+  - Label support and Prometheus text format
+- ✅ Unit tests (122 tests passing)
 
 **What Remains:**
 - ✅ All core features complete
@@ -220,6 +241,10 @@ entidb_sync/
 - ✅ `LICENSE` - MIT license
 - ✅ **NEW:** `setup.py` - Cross-platform Python setup script (replaced setup.sh/setup.bat)
 - ✅ `.github/copilot-instructions.md` - AI coding guidelines with documentation requirements
+- ✅ **NEW:** `.github/workflows/ci.yml` - GitHub Actions CI/CD pipeline
+  - Automated analyze, format check, tests
+  - Per-package test jobs with coverage
+  - Build artifacts and Docker image publishing
 - ✅ Test structure for all packages
 - ✅ Example applications
 
@@ -344,10 +369,10 @@ entidb_sync/
 - **Total:** ~15,000 lines
 
 ### Test Coverage
-- Protocol models: ✅ Complete tests (18 tests)
-- Client package: ✅ Unit tests (41 tests)
-- Server package: ✅ Unit tests (70 tests)
-- **Total: 129 tests passing**
+- Protocol models: ✅ Complete tests (44 tests)
+- Client package: ✅ Unit tests (67 tests)
+- Server package: ✅ Unit tests (122 tests)
+- **Total: 233 tests passing**
 
 ### Dependencies
 - **Protocol:** cbor, meta, lints, test
@@ -409,12 +434,16 @@ entidb_sync/
 - ✅ **NEW:** Production deployment guide (Docker)
 - ✅ **NEW:** Collection-level subscriptions
 - ✅ **NEW:** Gzip compression support
+- ✅ **NEW:** WebSocket transport (bidirectional real-time)
+- ✅ **NEW:** Delta encoding (field-level diffing)
+- ✅ **NEW:** Prometheus metrics (observability)
+- ✅ **NEW:** CI/CD pipeline (GitHub Actions)
 
 ### Future Enhancements:
-- 🔨 WebSocket transport option
 - 🔨 Partial sync (subset of collections)
-- 🔨 Delta encoding for large entities
-- 🔨 Prometheus metrics integration
+- 🔨 CRDTs for certain data patterns
+- 🔨 End-to-end encryption
+- 🔨 Multi-region support
 
 ---
 
