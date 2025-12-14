@@ -2,6 +2,16 @@
 
 ---
 
+## Current State
+
+> **Project Status:** Foundation Phase
+>
+> - ✅ **EntiDB core** is complete and operational at https://github.com/Tembocs/entidb
+> - 🚧 **This repository** (`entidb_sync`) will house the synchronization layer
+> - 📋 Packages are being scaffolded according to the structure below
+
+---
+
 ## Short, definitive answer
 
 > **Yes.**
@@ -25,14 +35,128 @@ But:
 ## The correct mental model
 
 ```
-entidb_sync  (repository)
+entidb_sync/
 ├─ packages/
-│  ├─ entidb_sync_client   ← used by apps
-│  ├─ entidb_sync_server   ← deployable service
-│  └─ entidb_sync_protocol ← shared CBOR/protocol models
+│  ├─ entidb_sync_protocol/
+│  │  ├─ lib/
+│  │  │  ├─ models/
+│  │  │  │  ├─ sync_operation.dart      # Logical replication record
+│  │  │  │  ├─ conflict.dart            # Conflict representation
+│  │  │  │  ├─ cursor.dart              # Sync progress tracking
+│  │  │  │  └─ sync_config.dart         # Client configuration
+│  │  │  ├─ cbor/
+│  │  │  │  ├─ encoders.dart            # CBOR serialization
+│  │  │  │  └─ decoders.dart            # CBOR deserialization
+│  │  │  ├─ protocol_version.dart       # Version negotiation
+│  │  │  └─ entidb_sync_protocol.dart   # Barrel export
+│  │  ├─ test/
+│  │  │  └─ protocol_test.dart
+│  │  └─ pubspec.yaml                   # Deps: cbor, meta
+│  │
+│  ├─ entidb_sync_client/
+│  │  ├─ lib/
+│  │  │  ├─ src/
+│  │  │  │  ├─ oplog/
+│  │  │  │  │  ├─ sync_oplog_service.dart   # WAL observer
+│  │  │  │  │  └─ operation_transformer.dart # WAL -> SyncOp
+│  │  │  │  ├─ transport/
+│  │  │  │  │  ├─ sync_client.dart          # HTTPS client
+│  │  │  │  │  ├─ retry_policy.dart         # Exponential backoff
+│  │  │  │  │  └─ offline_queue.dart        # Pending ops storage
+│  │  │  │  ├─ state/
+│  │  │  │  │  ├─ sync_state.dart           # Client sync state
+│  │  │  │  │  └─ cursor_manager.dart       # Local cursor tracking
+│  │  │  │  ├─ conflict/
+│  │  │  │  │  ├─ conflict_handler.dart     # Pluggable resolution
+│  │  │  │  │  └─ resolvers.dart            # Built-in strategies
+│  │  │  │  └─ sync_engine.dart             # Main orchestrator
+│  │  │  └─ entidb_sync_client.dart         # Public API
+│  │  ├─ test/
+│  │  └─ pubspec.yaml                       # Deps: entidb, protocol, http
+│  │
+│  ├─ entidb_sync_server/
+│  │  ├─ bin/
+│  │  │  └─ server.dart                      # Server entry point
+│  │  ├─ lib/
+│  │  │  ├─ src/
+│  │  │  │  ├─ api/
+│  │  │  │  │  ├─ endpoints.dart             # Route handlers
+│  │  │  │  │  ├─ handshake_handler.dart
+│  │  │  │  │  ├─ pull_handler.dart
+│  │  │  │  │  └─ push_handler.dart
+│  │  │  │  ├─ auth/
+│  │  │  │  │  └─ token_validator.dart       # Bearer token auth
+│  │  │  │  ├─ sync/
+│  │  │  │  │  ├─ server_oplog.dart          # Server operation log
+│  │  │  │  │  ├─ conflict_detector.dart     # Version conflict check
+│  │  │  │  │  └─ cursor_manager.dart        # Per-client cursors
+│  │  │  │  ├─ db/
+│  │  │  │  │  └─ entidb_provider.dart       # Server EntiDB instance
+│  │  │  │  └─ config/
+│  │  │  │      └─ server_config.dart        # Server configuration
+│  │  │  └─ entidb_sync_server.dart
+│  │  ├─ test/
+│  │  └─ pubspec.yaml                       # Deps: entidb, protocol, shelf
+│
+├─ tools/
+│  ├─ protocol_tests/
+│  │  └─ test_vectors.dart                  # CBOR test data
+│  └─ fixtures/
+│      └─ sample_operations.json
+│
+├─ examples/
+│  ├─ flutter_client/                       # Example Flutter app
+│  └─ standalone_server/                    # Deployable server
+│
+├─ doc/
+│  ├─ architecture.md                       # This document
+│  ├─ repository_organization.md            # This document
+│  ├─ protocol_test_vectors.md             # CBOR examples
+│  └─ api/                                  # Generated docs
+│
+└─ README.md
 ```
 
 This is **one repository**, multiple clearly scoped deliverables.
+
+---
+
+## Implementation Timeline
+
+### ✅ Phase 0: Foundation (Complete)
+- EntiDB core database engine exists at `Tembocs/entidb`
+- CBOR serialization, WAL, transactions, encryption all operational
+- Storage engine (PagedStorage), indexes (B-tree, Hash), query system complete
+- Reference: 15K+ lines of production-ready Dart code
+
+### 🚧 Phase 1: Sync Foundation (In Progress - Weeks 1-2)
+**Create in `entidb_sync` repo:**
+- [ ] Protocol package structure (`entidb_sync_protocol`)
+- [ ] Sync oplog abstraction (observes EntiDB WAL)
+- [ ] Shared CBOR schemas for `SyncOperation`, `Conflict`, cursors
+- [ ] Protocol test vectors with CBOR examples
+
+### 📋 Phase 2: Client Sync Engine (Weeks 3-6)
+- [ ] Implement `SyncOplogService` (WAL observer)
+- [ ] Build `SyncClient` with HTTPS transport
+- [ ] Pull-then-push cycle implementation
+- [ ] Offline queue management
+- [ ] Conflict detection and handler interface
+- [ ] Retry/backoff logic with exponential backoff
+
+### 📋 Phase 3: Reference Server (Weeks 7-8)
+- [ ] Dart HTTP server with shelf/dart_frog
+- [ ] Server-side EntiDB instance integration
+- [ ] Implement `/v1/handshake`, `/v1/pull`, `/v1/push` endpoints
+- [ ] Cursor management and per-client state
+- [ ] Server-side conflict detection
+
+### 📋 Phase 4: Testing & Polish (Weeks 9-10)
+- [ ] End-to-end sync tests (multi-client scenarios)
+- [ ] Performance benchmarking (throughput, latency)
+- [ ] Comprehensive API documentation
+- [ ] Example applications (Flutter + server)
+- [ ] Migration guide for existing EntiDB users
 
 ---
 

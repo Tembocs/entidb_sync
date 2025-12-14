@@ -1,0 +1,48 @@
+# Analysis options for EntiDB Sync
+# TODO: Uncomment after running 'dart pub get' in protocol package
+# include: package:lints/recommended.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  
+  errors:
+    # Treat missing required parameters as errors
+    missing_required_param: error
+    
+    # Treat missing returns as errors
+    missing_return: error
+    
+    # Warnings for deprecated APIs
+    deprecated_member_use: warning
+    deprecated_member_use_from_same_package: warning
+
+linter:
+  rules:
+    # Error handling
+    - avoid_catching_errors
+    - use_rethrow_when_possible
+    
+    # Style
+    - always_declare_return_types
+    - always_put_required_named_parameters_first
+    - avoid_redundant_argument_values
+    - prefer_const_constructors
+    - prefer_const_declarations
+    - prefer_final_locals
+    - sort_constructors_first
+    - sort_unnamed_constructors_first
+    - unawaited_futures
+    
+    # Documentation
+    - package_api_docs
+    - public_member_api_docs
+    
+    # Best practices
+    - avoid_print
+    - avoid_slow_async_io
+    - cancel_subscriptions
+    - close_sinks
+    - prefer_single_quotes

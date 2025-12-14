@@ -1,0 +1,51 @@
+name: entidb_sync_client
+description: Client-side synchronization engine for EntiDB (offline-first, conflict-aware)
+version: 0.1.0
+repository: https://github.com/Tembocs/entidb_sync
+publish_to: none
+
+environment:
+  sdk: ^3.10.1
+
+dependencies:
+  # EntiDB core - main database engine
+  # Note: Update path or use pub.dev version when published
+  entidb:
+    git:
+      url: https://github.com/Tembocs/entidb.git
+      ref: main
+  
+  # Protocol definitions (local package)
+  entidb_sync_protocol:
+    path: ../entidb_sync_protocol
+  
+  # HTTP client for sync communication
+  http: ^1.2.0
+  
+  # Retry logic with exponential backoff
+  retry: ^3.1.2
+  
+  # Structured logging
+  logging: ^1.3.0
+  
+  # Thread-safe operations
+  synchronized: ^3.4.0
+  
+  # UUID generation for operation IDs
+  uuid: ^4.5.2
+  
+  # Annotations
+  meta: ^1.16.0
+
+dev_dependencies:
+  # Testing framework
+  test: ^1.25.0
+  
+  # Mock HTTP responses
+  mockito: ^5.4.5
+  build_runner: ^2.4.14
+  
+  # Linting
+  lints: ^5.0.0
+
+# Configuration

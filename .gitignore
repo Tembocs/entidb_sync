@@ -1,0 +1,40 @@
+# Dart/Flutter
+.dart_tool/
+.packages
+build/
+*.lock
+pubspec.lock
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.code-workspace
+
+# Test coverage
+coverage/
+.test_coverage.dart
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Development
+.env
+.env.local
+tmp/
+temp/

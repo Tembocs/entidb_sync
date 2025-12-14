@@ -1,0 +1,24 @@
+name: entidb_sync_protocol
+description: Shared protocol definitions for EntiDB synchronization (CBOR-based)
+version: 0.1.0
+repository: https://github.com/Tembocs/entidb_sync
+
+environment:
+  sdk: ^3.10.1
+
+dependencies:
+  # CBOR encoding/decoding (matches EntiDB core)
+  cbor: ^6.3.7
+  
+  # Annotations
+  meta: ^1.16.0
+
+dev_dependencies:
+  # Testing framework
+  test: ^1.25.0
+  
+  # Linting
+  lints: ^5.0.0
+
+# Configuration
+# This package is pure protocol/data models with no side effects

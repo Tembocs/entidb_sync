@@ -1,0 +1,34 @@
+/// EntiDB Sync Client
+///
+/// Client-side synchronization engine for EntiDB databases.
+///
+/// Features:
+/// - Offline-first operation with local queue
+/// - Pull-then-push sync cycle
+/// - Conflict detection and pluggable resolution
+/// - Automatic retry with exponential backoff
+/// - Observes EntiDB WAL for change tracking
+///
+/// Usage:
+/// ```dart
+/// final sync = EntiDBSync(
+///   db: entidb,
+///   config: SyncConfig(
+///     serverUrl: Uri.parse('https://sync.example.org'),
+///     dbId: 'my-database',
+///     deviceId: 'device-123',
+///   ),
+/// );
+///
+/// await sync.start();
+/// ```
+library entidb_sync_client;
+
+// Oplog service (WAL observation)
+export 'src/oplog/sync_oplog_service.dart';
+
+// TODO: Uncomment as implementations are added
+// export 'src/sync_engine.dart';
+// export 'src/conflict/conflict_handler.dart';
+// export 'src/conflict/resolvers.dart';
+// export 'package:entidb_sync_protocol/entidb_sync_protocol.dart';

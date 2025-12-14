@@ -13,6 +13,26 @@ This is intended to be **authoritative**. You should be able to implement direct
 
 # EntiDB Synchronization Architecture
 
+## Table of Contents
+
+1. [Architectural Intent](#1-architectural-intent)
+2. [Core Architectural Principle](#2-core-architectural-principle-non-negotiable)
+3. [High-Level System Overview](#3-high-level-system-overview)
+4. [Technology Choice: Dart Everywhere](#4-technology-choice-dart-everywhere)
+5. [Explicit Endpoint Configuration](#5-explicit-endpoint-configuration-no-discovery)
+6. [EntiDB Core: Sync-Aware but Not Sync-Dependent](#6-entidb-core-sync-aware-but-not-sync-dependent)
+7. [EntiDB_Sync: Client-Side Synchronization Engine](#7-entidb_sync-client-side-synchronization-engine)
+8. [Synchronization Model](#8-synchronization-model)
+9. [Conflict Model](#9-conflict-model)
+10. [Sync Protocol](#10-sync-protocol)
+11. [Sync Server Architecture](#11-sync-server-architecture)
+12. [Architectural Invariants](#12-architectural-invariants-must-hold-forever)
+13. [Final Summary](#13-final-summary)
+14. [Integration with EntiDB](#14-integration-with-entidb)
+15. [Protocols](#protocols)
+
+---
+
 **Authoritative and Implementation-Grade Specification**
 
 ---
@@ -28,7 +48,13 @@ EntiDB is an **entity-based embedded database engine** written in Dart, designed
 * Platform-agnostic (mobile, desktop, server)
 
 Synchronization is an **optional capability**, added **without altering EntiDB’s embedded nature**.
+### 1.1 Current State & Project Scope
 
+> **Important Context:**
+> - **EntiDB core** (https://github.com/Tembocs/entidb) is **fully operational**
+> - Features CBOR serialization, WAL, transactions, encryption, and indexes
+> - **This project** (`entidb_sync`) builds synchronization **on top** of the existing engine
+> - We are creating a new capability, not modifying EntiDB core
 This document defines how synchronization is achieved **between multiple EntiDB instances** using:
 
 * A client-side sync engine (`EntiDB_Sync`)
@@ -195,14 +221,37 @@ EntiDB core:
 
 ---
 
-### 6.2 Change Feed / Operation Log (Optional)
+### 6.2 Change Feed / Operation Log (NEW - To Be Implemented)
 
-EntiDB MAY expose a **change feed**, disabled by default.
+> **Critical Distinction:** This is a **new capability** to be built on top of EntiDB's
+> existing WAL infrastructure.
+>
+> - **EntiDB's WAL** provides crash recovery and transaction durability (physical log)
+> - **Sync Oplog** will provide replication and synchronization (logical log)
+> - The oplog observes WAL commits and transforms them into replication events
+
+EntiDB will expose a **sync operation log**, disabled by default.
 
 Purpose:
 
 * Provide a deterministic stream of committed mutations
 * Enable synchronization without modifying core logic
+* Bridge the gap between physical WAL and logical replication
+
+#### Integration with Existing EntiDB WAL
+
+EntiDB already has:
+
+* `WalWriter` - Logs transaction operations (insert, update, delete)
+* `WalReader` - Reads WAL for recovery
+* `DataOperationPayload` - CBOR-encoded mutation data
+
+The sync oplog will:
+
+* Observe WAL commit records
+* Extract `DataOperationPayload` from committed transactions
+* Transform physical WAL records into logical `SyncOperation` records
+* Maintain separate cursor/sequence for replication
 
 #### Operation Record (Conceptual)
 
@@ -323,11 +372,91 @@ Resolution is **pluggable** and application-defined.
 
 ```dart
 abstract class ConflictResolver {
-  Resolution resolve(LocalChange local, RemoteState remote);
+  Future<Resolution> resolve({
+    required SyncOperation clientOp,
+    required ServerState serverState,
+  });
+}
+
+enum ResolutionType {
+  acceptClient,    // Apply client change, broadcast to others
+  rejectClient,    // Keep server state, force client update
+  merge,          // Custom merge logic applied
+}
+
+class Resolution {
+  final ResolutionType type;
+  final Map<String, dynamic>? mergedData;
+  
+  Resolution.acceptClient() : type = ResolutionType.acceptClient, mergedData = null;
+  Resolution.rejectClient() : type = ResolutionType.rejectClient, mergedData = null;
+  Resolution.merge(this.mergedData) : type = ResolutionType.merge;
+}
+
+class ServerState {
+  final int entityVersion;
+  final Map<String, dynamic> currentData;
+  final DateTime lastModified;
 }
 ```
 
 EntiDB core **never resolves conflicts**.
+
+### 9.4 Built-in Resolution Strategies
+
+#### Server Wins (Default)
+```dart
+class ServerWinsResolver implements ConflictResolver {
+  @override
+  Future<Resolution> resolve({
+    required SyncOperation clientOp,
+    required ServerState serverState,
+  }) async {
+    // Always reject client changes when conflict detected
+    return Resolution.rejectClient();
+  }
+}
+```
+
+#### Last-Write-Wins (Timestamp-based)
+```dart
+class LastWriteWinsResolver implements ConflictResolver {
+  @override
+  Future<Resolution> resolve({
+    required SyncOperation clientOp,
+    required ServerState serverState,
+  }) async {
+    if (clientOp.timestampMs > serverState.lastModified.millisecondsSinceEpoch) {
+      return Resolution.acceptClient();
+    } else {
+      return Resolution.rejectClient();
+    }
+  }
+}
+```
+
+#### Custom Field-Level Merge
+```dart
+class FieldMergeResolver implements ConflictResolver {
+  @override
+  Future<Resolution> resolve({
+    required SyncOperation clientOp,
+    required ServerState serverState,
+  }) async {
+    // Merge non-conflicting fields
+    final merged = Map<String, dynamic>.from(serverState.currentData);
+    
+    clientOp.payload?.forEach((key, value) {
+      if (!serverState.currentData.containsKey(key) || 
+          serverState.currentData[key] == value) {
+        merged[key] = value;
+      }
+    });
+    
+    return Resolution.merge(merged);
+  }
+}
+```
 
 ---
 
@@ -413,6 +542,101 @@ The sync server is:
 * No discovery, no ambiguity, no hidden behavior
 
 This architecture is **robust, implementable, and future-proof**.
+
+---
+
+## 14. Integration with EntiDB
+
+### 14.1 EntiDB Capabilities (Already Available)
+
+EntiDB provides all necessary primitives for synchronization:
+
+| EntiDB Capability | Location | Sync Usage |
+|-------------------|----------|------------|
+| **WAL** | `lib/src/engine/wal/` | Source for sync oplog observation |
+| **CBOR Serialization** | `BinarySerializer` | Direct entity encoding for transport |
+| **Entity Versioning** | Collection-level | Conflict detection input |
+| **Transactions** | `TransactionManager` | Atomic sync operation application |
+| **Encryption** | `AesGcmEncryptionService` | Optional end-to-end encryption |
+| **Storage Abstraction** | `Storage<T>` interface | Server-side persistence |
+
+### 14.2 WAL Structure (Existing)
+
+```dart
+// From entidb: lib/src/engine/wal/wal_record.dart
+class DataOperationPayload {
+  final String collectionName;
+  final String entityId;
+  final Map<String, dynamic>? beforeImage;
+  final Map<String, dynamic>? afterImage;
+  
+  Uint8List toBytes() { /* CBOR encoding */ }
+  factory DataOperationPayload.fromBytes(Uint8List bytes) { /* CBOR decoding */ }
+}
+
+enum WalRecordType {
+  beginTransaction,
+  commitTransaction,
+  abortTransaction,
+  insert,
+  update,
+  delete,
+  checkpoint,
+}
+```
+
+### 14.3 New Components Required
+
+**In `entidb_sync_client`:**
+- `SyncOplogService` - Observes WAL, emits `SyncOperation` records
+- `SyncClient` - HTTPS transport, cursor management, retry logic
+- `OfflineQueue` - Persists pending operations during disconnection
+- `ConflictHandler` - Surfaces conflicts to application
+
+**In `entidb_sync_server`:**
+- `SyncEndpoints` - HTTP handlers for handshake/pull/push
+- `ServerOplogManager` - Server-side operation log with global ordering
+- `ConflictDetector` - Compares client ops against server state
+- `CursorManager` - Tracks per-client sync progress
+
+**In `entidb_sync_protocol`:**
+- `SyncOperation` - Logical replication record (CBOR codecs)
+- `Conflict` - Conflict representation with resolution context
+- `SyncConfig` - Client configuration model
+
+### 14.4 Data Flow
+
+```
+Client App
+    │
+    ├─ EntiDB (local)
+    │   └─ WAL (physical log)
+    │       └─ DataOperationPayload (CBOR)
+    │
+    ├─ SyncOplogService
+    │   └─ observes WAL commits
+    │   └─ transforms to SyncOperation (logical log)
+    │
+    └─ SyncClient
+        └─ HTTPS ───────────────► Server
+                                    │
+                                    ├─ SyncEndpoints
+                                    │   └─ parse CBOR requests
+                                    │
+                                    ├─ EntiDB (server)
+                                    │   └─ authoritative state
+                                    │
+                                    └─ ServerOplogManager
+                                        └─ emit ordered ops to clients
+```
+
+### 14.5 Implementation Notes
+
+1. **WAL Observation:** Use `WalReader.forEach()` to consume commit records
+2. **CBOR Reuse:** Wrap `DataOperationPayload` bytes directly, no re-encoding
+3. **Entity Blobs:** EntiDB already stores entities as CBOR via `BinarySerializer`
+4. **Versioning:** Collections track entity versions via internal metadata
+5. **Isolation:** Sync logic never touches EntiDB core, only observes and applies
 
 ---
 
