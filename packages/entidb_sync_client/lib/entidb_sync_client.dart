@@ -31,6 +31,9 @@ export 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
 export 'src/oplog/sync_oplog_service.dart';
 export 'src/oplog/sync_oplog_service_impl.dart';
 
+// Offline queue
+export 'src/queue/offline_queue.dart';
+
 // HTTP transport
 export 'src/transport/http_transport.dart';
 
