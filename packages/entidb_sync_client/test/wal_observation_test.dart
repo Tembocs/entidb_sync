@@ -25,7 +25,13 @@ void main() {
     });
 
     tearDown(() async {
-      await tempDir.delete(recursive: true);
+      // Give time for file handles to be released on Windows
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      try {
+        await tempDir.delete(recursive: true);
+      } catch (_) {
+        // Ignore deletion errors on Windows due to file locking
+      }
     });
 
     test('starts and observes WAL file', () async {

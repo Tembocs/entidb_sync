@@ -8,6 +8,7 @@
 /// - Conflict detection and pluggable resolution
 /// - Automatic retry with exponential backoff
 /// - Observes EntiDB WAL for change tracking
+/// - Real-time updates via Server-Sent Events (SSE)
 ///
 /// Usage:
 /// ```dart
@@ -43,3 +44,6 @@ export 'src/sync/sync_manager.dart';
 
 // Conflict resolution
 export 'src/conflict/resolvers.dart';
+
+// SSE (Server-Sent Events) for real-time updates
+export 'src/sse/sse_subscriber.dart';

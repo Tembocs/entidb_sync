@@ -1,0 +1,13 @@
+name: entidb_sync_benchmark
+description: Performance benchmarks for EntiDB Sync
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  entidb_sync_protocol:
+    path: ../packages/entidb_sync_protocol
+  entidb_sync_server:
+    path: ../packages/entidb_sync_server

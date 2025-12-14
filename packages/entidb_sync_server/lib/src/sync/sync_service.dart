@@ -8,6 +8,12 @@ import 'dart:typed_data';
 import 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
 import 'package:synchronized/synchronized.dart';
 
+import '../sse/sse_manager.dart';
+
+/// Callback for SSE broadcast when operations are pushed.
+typedef OperationBroadcastCallback =
+    void Function(List<SyncOperation> operations, int cursor);
+
 /// In-memory sync service for demonstration purposes.
 ///
 /// In production, this would use EntiDB for persistence.
@@ -24,6 +30,23 @@ class SyncService {
   /// Lock for thread-safe operations.
   final Lock _lock = Lock();
 
+  /// Optional SSE manager for real-time updates.
+  SseManager? _sseManager;
+
+  /// Callback for broadcasting operations.
+  OperationBroadcastCallback? _broadcastCallback;
+
+  /// Sets the SSE manager for real-time broadcasts.
+  void setSseManager(SseManager manager) {
+    _sseManager = manager;
+    _broadcastCallback = manager.broadcast;
+  }
+
+  /// Sets a custom broadcast callback.
+  void setBroadcastCallback(OperationBroadcastCallback callback) {
+    _broadcastCallback = callback;
+  }
+
   /// Processes a handshake request.
   Future<HandshakeResponse> handleHandshake(HandshakeRequest request) async {
     return await _lock.synchronized(() async {
@@ -32,10 +55,10 @@ class SyncService {
 
       return HandshakeResponse(
         serverCursor: _globalOpId,
-        capabilities: const ServerCapabilities(
+        capabilities: ServerCapabilities(
           pull: true,
           push: true,
-          sse: false,
+          sse: _sseManager != null,
         ),
       );
     });
@@ -53,13 +76,14 @@ class SyncService {
       // Apply collection filter if provided
       final filteredOps = request.collections != null
           ? ops
-              .where((op) => request.collections!.contains(op.collection))
-              .toList()
+                .where((op) => request.collections!.contains(op.collection))
+                .toList()
           : ops;
 
       // Calculate next cursor
-      final nextCursor =
-          filteredOps.isEmpty ? request.sinceCursor : filteredOps.last.opId;
+      final nextCursor = filteredOps.isEmpty
+          ? request.sinceCursor
+          : filteredOps.last.opId;
 
       // Check if more operations available
       final hasMore = _oplog.any((op) => op.opId > nextCursor);
@@ -76,6 +100,7 @@ class SyncService {
   Future<PushResponse> handlePush(PushRequest request) async {
     return await _lock.synchronized(() async {
       final conflicts = <Conflict>[];
+      final acceptedOps = <SyncOperation>[];
       int acknowledgedUpToOpId = 0;
 
       for (final clientOp in request.ops) {
@@ -102,12 +127,18 @@ class SyncService {
         );
 
         _oplog.add(serverOp);
+        acceptedOps.add(serverOp);
         acknowledgedUpToOpId = clientOp.opId;
       }
 
       // Update device cursor
       if (acknowledgedUpToOpId > 0) {
         _deviceCursors[request.deviceId] = _globalOpId;
+      }
+
+      // Broadcast accepted operations via SSE
+      if (acceptedOps.isNotEmpty && _broadcastCallback != null) {
+        _broadcastCallback!(acceptedOps, _globalOpId);
       }
 
       return PushResponse(
@@ -121,9 +152,11 @@ class SyncService {
   Conflict? _detectConflict(SyncOperation clientOp) {
     // Find the latest server operation for this entity
     final serverOps = _oplog
-        .where((op) =>
-            op.collection == clientOp.collection &&
-            op.entityId == clientOp.entityId)
+        .where(
+          (op) =>
+              op.collection == clientOp.collection &&
+              op.entityId == clientOp.entityId,
+        )
         .toList();
 
     if (serverOps.isEmpty) {
@@ -142,8 +175,9 @@ class SyncService {
         serverState: ServerState(
           entityVersion: latestServerOp.entityVersion,
           entityCbor: latestServerOp.entityCbor ?? Uint8List(0),
-          lastModified:
-              DateTime.fromMillisecondsSinceEpoch(latestServerOp.timestampMs),
+          lastModified: DateTime.fromMillisecondsSinceEpoch(
+            latestServerOp.timestampMs,
+          ),
         ),
       );
     }

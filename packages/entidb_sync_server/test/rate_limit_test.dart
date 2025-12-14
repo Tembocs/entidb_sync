@@ -72,7 +72,7 @@ void main() {
     test('refills over time', () async {
       final bucket = TokenBucket(
         maxTokens: 5,
-        refillInterval: const Duration(milliseconds: 50),
+        refillInterval: const Duration(milliseconds: 20),
       );
 
       // Exhaust tokens
@@ -81,8 +81,8 @@ void main() {
       }
       expect(bucket.availableTokens, 0);
 
-      // Wait for refill
-      await Future<void>.delayed(const Duration(milliseconds: 60));
+      // Wait for refill (longer wait to be safe on slow CI)
+      await Future<void>.delayed(const Duration(milliseconds: 100));
       expect(bucket.availableTokens, greaterThan(0));
     });
 

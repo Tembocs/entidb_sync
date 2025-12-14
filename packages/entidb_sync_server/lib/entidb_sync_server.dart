@@ -8,6 +8,7 @@
 /// - Per-client cursor management
 /// - Conflict detection and policy enforcement
 /// - JWT authentication support
+/// - Real-time updates via Server-Sent Events (SSE)
 ///
 /// This is a reference implementation. Production deployments may
 /// customize authentication, scaling, and deployment strategies.
@@ -28,8 +29,12 @@ export 'src/sync/sync_service.dart';
 // API endpoints
 export 'src/api/endpoints.dart';
 
+// SSE (Server-Sent Events) for real-time updates
+export 'src/sse/sse_manager.dart';
+
 // Middleware
 export 'src/middleware/auth_middleware.dart';
+export 'src/middleware/compression_middleware.dart';
 export 'src/middleware/cors_middleware.dart';
 export 'src/middleware/logging_middleware.dart';
 export 'src/middleware/rate_limit_middleware.dart';
