@@ -39,6 +39,7 @@ export 'src/transport/http_transport.dart';
 
 // Sync engine
 export 'src/sync/sync_engine.dart';
+export 'src/sync/sync_manager.dart';
 
 // Conflict resolution
 export 'src/conflict/resolvers.dart';

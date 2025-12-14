@@ -22,12 +22,27 @@ void main(List<String> arguments) async {
   // Create router
   final router = createSyncRouter(syncService);
 
-  // Build handler pipeline
+  // Configure JWT authentication
+  final jwtConfig = JwtAuthConfig(
+    secret: config.jwtSecret,
+    publicPaths: ['/health', '/v1/version'],
+  );
+
+  // Configure rate limiting
+  final rateLimitConfig = RateLimitConfig(
+    maxRequests: 100,
+    window: const Duration(minutes: 1),
+    exemptPaths: ['/health'],
+  );
+
+  // Build handler pipeline with all middleware
   final handler = const shelf.Pipeline()
       .addMiddleware(createLoggingMiddleware(log))
       .addMiddleware(createCorsMiddleware(
         allowedOrigins: config.corsAllowedOrigins,
       ))
+      .addMiddleware(createRateLimitMiddleware(rateLimitConfig))
+      .addMiddleware(createJwtAuthMiddleware(jwtConfig))
       .addHandler(router.call);
 
   // Start server
@@ -35,12 +50,16 @@ void main(List<String> arguments) async {
 
   log.info('Server listening on http://${server.address.host}:${server.port}');
   log.info('Endpoints:');
-  log.info('  GET  /health       - Health check');
-  log.info('  GET  /v1/version   - Protocol version');
-  log.info('  POST /v1/handshake - Client handshake');
-  log.info('  POST /v1/pull      - Pull operations');
-  log.info('  POST /v1/push      - Push operations');
-  log.info('  GET  /v1/stats     - Server statistics');
+  log.info('  GET  /health       - Health check (public)');
+  log.info('  GET  /v1/version   - Protocol version (public)');
+  log.info('  POST /v1/handshake - Client handshake (auth required)');
+  log.info('  POST /v1/pull      - Pull operations (auth required)');
+  log.info('  POST /v1/push      - Push operations (auth required)');
+  log.info('  GET  /v1/stats     - Server statistics (auth required)');
+  log.info('');
+  log.info('Security:');
+  log.info('  JWT Auth: enabled (set JWT_SECRET env var)');
+  log.info('  Rate Limit: ${rateLimitConfig.maxRequests} req/min');
 
   // Handle shutdown signals
   ProcessSignal.sigint.watch().listen((_) async {

@@ -1,0 +1,22 @@
+name: entidb_sync_examples
+description: Examples for EntiDB Sync
+
+publish_to: none
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  entidb:
+    git:
+      url: https://github.com/Tembocs/entidb.git
+      ref: main
+  entidb_sync_protocol:
+    path: ../packages/entidb_sync_protocol
+  entidb_sync_client:
+    path: ../packages/entidb_sync_client
+  entidb_sync_server:
+    path: ../packages/entidb_sync_server
+  logging: ^1.2.0
+  shelf: ^1.4.0
+  uuid: ^4.0.0

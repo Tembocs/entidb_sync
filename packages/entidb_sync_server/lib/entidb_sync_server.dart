@@ -32,3 +32,4 @@ export 'src/api/endpoints.dart';
 export 'src/middleware/auth_middleware.dart';
 export 'src/middleware/cors_middleware.dart';
 export 'src/middleware/logging_middleware.dart';
+export 'src/middleware/rate_limit_middleware.dart';

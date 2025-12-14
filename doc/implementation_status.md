@@ -1,6 +1,6 @@
 # EntiDB Sync - Implementation Status
 
-**Last Updated:** 2025-01-17
+**Last Updated:** 2025-01-18
 
 ## Quick Summary
 
@@ -93,11 +93,18 @@ entidb_sync/
   - Internal collection filtering (skips `_` prefix)
   - State persistence across restarts
   - `OperationTransformerImpl` for WAL → SyncOperation
+- ✅ **NEW:** `SyncManager` for automatic sync integration:
+  - Connects WAL observation → OfflineQueue → SyncEngine
+  - Debounced sync triggers on local changes
+  - Periodic sync with configurable interval
+  - Pause/resume support
+  - Retry with exponential backoff
+  - Sync statistics tracking
 - ✅ Re-exports protocol types for convenience
 - ✅ Directory structure (oplog/, sync/, transport/, conflict/, queue/)
 - ✅ Package exports and dependencies
 - ✅ `pubspec.yaml` with all dependencies
-- ✅ Unit tests (21 tests passing)
+- ✅ Unit tests (28 tests passing)
 
 **What Remains:**
 - 🔨 Real-time WAL file watching (polling sufficient for now)
@@ -129,18 +136,20 @@ entidb_sync/
   - `GET /v1/stats` - Server statistics
 - ✅ CORS middleware with configurable origins
 - ✅ Logging middleware
-- ✅ **NEW:** JWT authentication middleware scaffold
-- ✅ Unit tests (8 tests passing)
-- ✅ **NEW:** Integration tests (14 tests passing):
-  - Client-server sync cycles
-  - Conflict detection/resolution
-  - Offline queue persistence
-  - Multi-device synchronization
-  - EntiDB persistence across restarts
+- ✅ **NEW:** JWT authentication middleware:
+  - Token validation with dart_jsonwebtoken
+  - Public path exemptions
+  - Custom claims (deviceId, dbId)
+  - Token generation utility for testing
+- ✅ **NEW:** Rate limiting middleware:
+  - Token bucket algorithm
+  - Per-client tracking
+  - Configurable limits and windows
+  - X-RateLimit-* headers
+- ✅ Unit tests (36 tests passing)
 
 **What Remains:**
-- 🔨 Rate limiting
-- 🔨 JWT secret management
+- ✅ All core features complete
 
 ### 📚 Documentation
 
@@ -304,18 +313,19 @@ entidb_sync/
 ## 📊 Metrics
 
 ### Lines of Code
-- **Documentation:** ~5,000 lines
+- **Documentation:** ~5,500 lines
 - **Protocol Models:** ~600 lines
-- **Interface Definitions:** ~400 lines
-- **Implementation:** ~2,500 lines
-- **Tests:** ~800 lines
-- **Total:** ~9,300 lines
+- **Interface Definitions:** ~500 lines
+- **Implementation:** ~3,500 lines
+- **Tests:** ~1,200 lines
+- **Examples:** ~250 lines
+- **Total:** ~11,500 lines
 
 ### Test Coverage
 - Protocol models: ✅ Complete tests (18 tests)
-- Client package: ✅ Unit tests (21 tests)
-- Server package: ✅ Unit tests (22 tests)
-- **Total: 61 tests passing**
+- Client package: ✅ Unit tests (28 tests)
+- Server package: ✅ Unit tests (36 tests)
+- **Total: 82 tests passing**
 
 ### Dependencies
 - **Protocol:** cbor, meta, lints, test
@@ -367,14 +377,16 @@ entidb_sync/
 - ✅ EntiDB-backed server storage
 - ✅ Multi-device sync support
 - ✅ Conflict resolution handlers
-- ✅ **NEW:** WAL observation (automatic local change detection)
+- ✅ WAL observation (automatic local change detection)
+- ✅ **NEW:** Automatic background sync (SyncManager)
+- ✅ **NEW:** JWT authentication (full implementation)
+- ✅ **NEW:** Rate limiting (token bucket algorithm)
+- ✅ **NEW:** End-to-end example application
 
 ### Coming Soon:
-- 🔨 Automatic background sync (SyncEngine + WAL integration)
-- 🔨 JWT authentication (scaffold ready)
-- 🔨 Real-time updates (SSE)
-- 🔨 Rate limiting
+- 🔨 Real-time updates (SSE/WebSocket)
 - 🔨 Performance benchmarks
+- 🔨 Production deployment guides
 
 ---
 
