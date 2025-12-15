@@ -13,6 +13,29 @@ import 'package:logging/logging.dart';
 
 /// Configuration for WebSocket transport.
 class WebSocketTransportConfig {
+  /// Creates a WebSocket transport configuration.
+  ///
+  /// - [serverUrl]: WebSocket server URL (ws:// or wss://).
+  /// - [dbId]: Database identifier.
+  /// - [deviceId]: Device identifier.
+  /// - [authTokenProvider]: Optional function to provide auth token.
+  /// - [reconnectDelay]: Initial reconnection delay.
+  /// - [maxReconnectDelay]: Maximum reconnection delay.
+  /// - [pingInterval]: Ping interval for keep-alive.
+  /// - [requestTimeout]: Request timeout duration.
+  /// - [collections]: Collections to subscribe to (null = all).
+  const WebSocketTransportConfig({
+    required this.serverUrl,
+    required this.dbId,
+    required this.deviceId,
+    this.authTokenProvider,
+    this.reconnectDelay = const Duration(seconds: 1),
+    this.maxReconnectDelay = const Duration(seconds: 30),
+    this.pingInterval = const Duration(seconds: 30),
+    this.requestTimeout = const Duration(seconds: 30),
+    this.collections,
+  });
+
   /// WebSocket server URL (ws:// or wss://).
   final Uri serverUrl;
 
@@ -39,18 +62,6 @@ class WebSocketTransportConfig {
 
   /// Collections to subscribe to (null = all).
   final List<String>? collections;
-
-  const WebSocketTransportConfig({
-    required this.serverUrl,
-    required this.dbId,
-    required this.deviceId,
-    this.authTokenProvider,
-    this.reconnectDelay = const Duration(seconds: 1),
-    this.maxReconnectDelay = const Duration(seconds: 30),
-    this.pingInterval = const Duration(seconds: 30),
-    this.requestTimeout = const Duration(seconds: 30),
-    this.collections,
-  });
 }
 
 /// WebSocket connection state.
@@ -73,27 +84,50 @@ enum WebSocketState {
 
 /// Message types for WebSocket protocol (mirrors server).
 enum WsMessageType {
+  /// Subscribe to collections.
   subscribe,
+
+  /// Subscription confirmed.
   subscribed,
+
+  /// Operations from server.
   operations,
+
+  /// Acknowledgement.
   ack,
+
+  /// Pull request.
   pull,
+
+  /// Pull response.
   pullResponse,
+
+  /// Push request.
   push,
+
+  /// Push response.
   pushResponse,
+
+  /// Ping for keep-alive.
   ping,
+
+  /// Pong response.
   pong,
+
+  /// Error message.
   error,
 }
 
 /// Represents a WebSocket message.
 class WsMessage {
-  final WsMessageType type;
-  final String? id;
-  final Map<String, dynamic> data;
+  /// Creates a WebSocket message.
+  ///
+  /// - [type]: Message type.
+  /// - [data]: Message payload.
+  /// - [id]: Optional message ID for request-response correlation.
+  const WsMessage({required this.type, required this.data, this.id});
 
-  const WsMessage({required this.type, this.id, required this.data});
-
+  /// Parses a WebSocket message from JSON string.
   factory WsMessage.fromJson(String json) {
     final map = jsonDecode(json) as Map<String, dynamic>;
     return WsMessage(
@@ -106,6 +140,16 @@ class WsMessage {
     );
   }
 
+  /// Message type.
+  final WsMessageType type;
+
+  /// Message ID for request-response correlation.
+  final String? id;
+
+  /// Message payload.
+  final Map<String, dynamic> data;
+
+  /// Serializes the message to JSON.
   String toJson() {
     return jsonEncode({
       'type': type.name,
@@ -121,6 +165,12 @@ typedef OperationsCallback =
 
 /// WebSocket transport for bidirectional real-time sync.
 class WebSocketTransport {
+  /// Creates a WebSocket transport.
+  ///
+  /// - [config]: WebSocket transport configuration.
+  WebSocketTransport({required WebSocketTransportConfig config})
+    : _config = config;
+
   final WebSocketTransportConfig _config;
   final Logger _log = Logger('WebSocketTransport');
 
@@ -147,9 +197,6 @@ class WebSocketTransport {
 
   /// Current server cursor.
   int _serverCursor = 0;
-
-  WebSocketTransport({required WebSocketTransportConfig config})
-    : _config = config;
 
   /// Current connection state.
   WebSocketState get state => _state;
@@ -509,10 +556,17 @@ class WebSocketTransport {
 
 /// Exception thrown when WebSocket transport fails.
 class WebSocketTransportException implements Exception {
-  final String message;
-  final String? code;
-
+  /// Creates a WebSocket transport exception.
+  ///
+  /// - [message]: Error description.
+  /// - [code]: Optional error code.
   WebSocketTransportException(this.message, {this.code});
+
+  /// Error message.
+  final String message;
+
+  /// Error code.
+  final String? code;
 
   @override
   String toString() =>

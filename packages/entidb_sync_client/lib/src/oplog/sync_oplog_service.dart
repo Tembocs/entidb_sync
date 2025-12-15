@@ -62,6 +62,31 @@ import 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
 /// });
 /// ```
 abstract class SyncOplogService {
+  /// Factory constructor for the default implementation.
+  ///
+  /// - [walPath]: Path to the EntiDB WAL file.
+  /// - [dbId]: Database identifier.
+  /// - [deviceId]: Device identifier.
+  /// - [persistState]: Whether to persist oplog state for crash recovery.
+  /// - [statePath]: Path to persist oplog state.
+  factory SyncOplogService({
+    required String walPath,
+    required String dbId,
+    required String deviceId,
+    bool persistState = true,
+    String? statePath,
+  }) {
+    // Import is deferred to avoid circular dependency
+    // ignore: avoid_dynamic_calls
+    return _createImpl(
+      walPath: walPath,
+      dbId: dbId,
+      deviceId: deviceId,
+      persistState: persistState,
+      statePath: statePath,
+    );
+  }
+
   /// Database identifier (globally unique).
   String get dbId;
 
@@ -115,31 +140,6 @@ abstract class SyncOplogService {
     required int sinceOpId,
     int limit = 100,
   });
-
-  /// Factory constructor for the default implementation.
-  ///
-  /// - [walPath]: Path to the EntiDB WAL file.
-  /// - [dbId]: Database identifier.
-  /// - [deviceId]: Device identifier.
-  /// - [persistState]: Whether to persist oplog state for crash recovery.
-  /// - [statePath]: Path to persist oplog state.
-  factory SyncOplogService({
-    required String walPath,
-    required String dbId,
-    required String deviceId,
-    bool persistState = true,
-    String? statePath,
-  }) {
-    // Import is deferred to avoid circular dependency
-    // ignore: avoid_dynamic_calls
-    return _createImpl(
-      walPath: walPath,
-      dbId: dbId,
-      deviceId: deviceId,
-      persistState: persistState,
-      statePath: statePath,
-    );
-  }
 }
 
 /// Creates the default implementation.
@@ -163,10 +163,14 @@ SyncOplogService _createImpl({
 
 /// Exception thrown when WAL file is not found.
 class WalNotFoundException implements Exception {
-  final String path;
-  final String message;
-
+  /// Creates a WAL not found exception.
   WalNotFoundException(this.path, this.message);
+
+  /// Path to the WAL file.
+  final String path;
+
+  /// Error message.
+  final String message;
 
   @override
   String toString() => 'WalNotFoundException: $message (path: $path)';
@@ -200,6 +204,23 @@ abstract class OperationTransformer {
 
 /// Configuration for SyncOplogService.
 class OplogConfig {
+  /// Creates oplog configuration.
+  ///
+  /// - [walPath]: Path to the WAL file.
+  /// - [dbId]: Database identifier.
+  /// - [deviceId]: Device identifier.
+  /// - [persistState]: Whether to persist oplog state for crash recovery.
+  /// - [statePath]: Path to persist oplog state.
+  /// - [maxBufferSize]: Maximum operations to buffer before backpressure.
+  const OplogConfig({
+    required this.walPath,
+    required this.dbId,
+    required this.deviceId,
+    this.persistState = true,
+    this.statePath,
+    this.maxBufferSize = 1000,
+  });
+
   /// Path to the WAL file.
   final String walPath;
 
@@ -217,40 +238,20 @@ class OplogConfig {
 
   /// Maximum operations to buffer before backpressure.
   final int maxBufferSize;
-
-  const OplogConfig({
-    required this.walPath,
-    required this.dbId,
-    required this.deviceId,
-    this.persistState = true,
-    this.statePath,
-    this.maxBufferSize = 1000,
-  });
 }
 
 /// Oplog state for persistence and recovery.
 class OplogState {
-  /// Last processed WAL LSN (Log Sequence Number).
-  final int lastLsn;
-
-  /// Last emitted operation ID.
-  final int lastOpId;
-
-  /// Timestamp of last processed operation.
-  final DateTime lastProcessedAt;
-
+  /// Creates an oplog state.
+  ///
+  /// - [lastLsn]: Last processed WAL LSN.
+  /// - [lastOpId]: Last emitted operation ID.
+  /// - [lastProcessedAt]: Timestamp of last processed operation.
   const OplogState({
     required this.lastLsn,
     required this.lastOpId,
     required this.lastProcessedAt,
   });
-
-  /// Serializes to JSON for persistence.
-  Map<String, dynamic> toJson() => {
-        'lastLsn': lastLsn,
-        'lastOpId': lastOpId,
-        'lastProcessedAt': lastProcessedAt.toIso8601String(),
-      };
 
   /// Deserializes from JSON.
   factory OplogState.fromJson(Map<String, dynamic> json) {
@@ -260,4 +261,20 @@ class OplogState {
       lastProcessedAt: DateTime.parse(json['lastProcessedAt'] as String),
     );
   }
+
+  /// Last processed WAL LSN (Log Sequence Number).
+  final int lastLsn;
+
+  /// Last emitted operation ID.
+  final int lastOpId;
+
+  /// Timestamp of last processed operation.
+  final DateTime lastProcessedAt;
+
+  /// Serializes to JSON for persistence.
+  Map<String, dynamic> toJson() => {
+    'lastLsn': lastLsn,
+    'lastOpId': lastOpId,
+    'lastProcessedAt': lastProcessedAt.toIso8601String(),
+  };
 }

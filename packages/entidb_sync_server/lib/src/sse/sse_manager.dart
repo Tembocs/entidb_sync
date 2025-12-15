@@ -10,6 +10,13 @@ import 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
 
 /// Configuration for SSE connections.
 class SseConfig {
+  /// Creates SSE configuration.
+  const SseConfig({
+    this.keepAliveIntervalSeconds = 30,
+    this.maxConnectionsPerDevice = 3,
+    this.maxTotalConnections = 1000,
+  });
+
   /// How often to send keepalive pings (in seconds).
   final int keepAliveIntervalSeconds;
 
@@ -19,19 +26,20 @@ class SseConfig {
   /// Maximum total connections.
   final int maxTotalConnections;
 
-  /// Creates SSE configuration.
-  const SseConfig({
-    this.keepAliveIntervalSeconds = 30,
-    this.maxConnectionsPerDevice = 3,
-    this.maxTotalConnections = 1000,
-  });
-
   /// Default configuration.
   static const SseConfig defaultConfig = SseConfig();
 }
 
 /// Represents a client SSE subscription.
 class SseSubscription {
+  /// Creates a new SSE subscription.
+  SseSubscription({
+    required this.subscriptionId,
+    required this.deviceId,
+    this.collections,
+  }) : _controller = StreamController<String>.broadcast(),
+       createdAt = DateTime.now();
+
   /// Unique subscription ID.
   final String subscriptionId;
 
@@ -41,7 +49,6 @@ class SseSubscription {
   /// Collections to filter (null = all collections).
   final List<String>? collections;
 
-  /// Stream controller for sending events.
   final StreamController<String> _controller;
 
   /// When the subscription was created.
@@ -49,14 +56,6 @@ class SseSubscription {
 
   /// Number of events sent.
   int eventsSent = 0;
-
-  /// Creates a new SSE subscription.
-  SseSubscription({
-    required this.subscriptionId,
-    required this.deviceId,
-    this.collections,
-  }) : _controller = StreamController<String>.broadcast(),
-       createdAt = DateTime.now();
 
   /// The event stream.
   Stream<String> get stream => _controller.stream;
@@ -98,17 +97,8 @@ enum SseEventType {
 
 /// Represents an SSE event.
 class SseEvent {
-  /// Event type.
-  final SseEventType type;
-
-  /// Event ID (for reconnection).
-  final String? id;
-
-  /// Event data payload.
-  final Map<String, dynamic> data;
-
   /// Creates an SSE event.
-  const SseEvent({required this.type, this.id, required this.data});
+  const SseEvent({required this.type, required this.data, this.id});
 
   /// Creates an operations event.
   factory SseEvent.operations({
@@ -154,6 +144,15 @@ class SseEvent {
     );
   }
 
+  /// Event type.
+  final SseEventType type;
+
+  /// Event ID (for reconnection).
+  final String? id;
+
+  /// Event data payload.
+  final Map<String, dynamic> data;
+
   /// Converts to SSE format string.
   String toSseString() {
     final buffer = StringBuffer();
@@ -171,6 +170,11 @@ class SseEvent {
 
 /// Manages SSE connections and broadcasts operations.
 class SseManager {
+  /// Creates an SSE manager.
+  SseManager({this.config = SseConfig.defaultConfig}) {
+    _startKeepalive();
+  }
+
   /// Configuration.
   final SseConfig config;
 
@@ -185,11 +189,6 @@ class SseManager {
 
   /// Operation counter for event IDs.
   int _eventCounter = 0;
-
-  /// Creates an SSE manager.
-  SseManager({this.config = SseConfig.defaultConfig}) {
-    _startKeepalive();
-  }
 
   /// Creates a new subscription for a device.
   ///

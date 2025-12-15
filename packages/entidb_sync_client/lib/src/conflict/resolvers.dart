@@ -17,6 +17,7 @@ abstract class ConflictResolver {
 ///
 /// This is the default and safest strategy.
 class ServerWinsResolver implements ConflictResolver {
+  /// Creates a server-wins resolver.
   const ServerWinsResolver();
 
   @override
@@ -30,6 +31,7 @@ class ServerWinsResolver implements ConflictResolver {
 ///
 /// Warning: This can overwrite concurrent changes from other devices.
 class ClientWinsResolver implements ConflictResolver {
+  /// Creates a client-wins resolver.
   const ClientWinsResolver();
 
   @override
@@ -51,6 +53,7 @@ class ClientWinsResolver implements ConflictResolver {
 
 /// Last-write-wins strategy: Use the most recent version based on timestamp.
 class LastWriteWinsResolver implements ConflictResolver {
+  /// Creates a last-write-wins resolver.
   const LastWriteWinsResolver();
 
   @override
@@ -81,9 +84,12 @@ class LastWriteWinsResolver implements ConflictResolver {
 
 /// Custom resolver that uses a callback function.
 class CustomResolver implements ConflictResolver {
-  final Future<SyncOperation?> Function(Conflict conflict) _resolver;
-
+  /// Creates a custom resolver with the specified callback.
+  ///
+  /// - [resolver]: Callback that resolves conflicts.
   const CustomResolver(this._resolver);
+
+  final Future<SyncOperation?> Function(Conflict conflict) _resolver;
 
   @override
   Future<SyncOperation?> resolve(Conflict conflict) => _resolver(conflict);
@@ -91,9 +97,12 @@ class CustomResolver implements ConflictResolver {
 
 /// Composite resolver that tries multiple strategies in order.
 class CompositeResolver implements ConflictResolver {
-  final List<ConflictResolver> _resolvers;
-
+  /// Creates a composite resolver with multiple strategies.
+  ///
+  /// - [resolvers]: List of resolvers to try in order.
   const CompositeResolver(this._resolvers);
+
+  final List<ConflictResolver> _resolvers;
 
   @override
   Future<SyncOperation?> resolve(Conflict conflict) async {

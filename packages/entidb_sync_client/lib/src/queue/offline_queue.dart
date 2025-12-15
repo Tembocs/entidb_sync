@@ -42,6 +42,14 @@ import 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
 /// Stores operations locally and provides them for synchronization
 /// when connectivity is available.
 class OfflineQueue {
+  /// Creates an offline queue with the specified storage path.
+  ///
+  /// - [storagePath]: Directory path for queue persistence.
+  /// - [maxRetries]: Maximum retry attempts before marking as failed.
+  OfflineQueue({required String storagePath, int maxRetries = 5})
+    : _storagePath = storagePath,
+      _maxRetries = maxRetries;
+
   final String _storagePath;
   final int _maxRetries;
 
@@ -52,14 +60,6 @@ class OfflineQueue {
   final Map<int, int> _opIdIndex = {};
 
   bool _isOpen = false;
-
-  /// Creates an offline queue with the specified storage path.
-  ///
-  /// - [storagePath]: Directory path for queue persistence.
-  /// - [maxRetries]: Maximum retry attempts before marking as failed.
-  OfflineQueue({required String storagePath, int maxRetries = 5})
-    : _storagePath = storagePath,
-      _maxRetries = maxRetries;
 
   /// Whether the queue is currently open.
   bool get isOpen => _isOpen;
@@ -385,6 +385,39 @@ enum QueueStatus {
 
 /// Wrapper for a queued sync operation with metadata.
 class QueuedOperation {
+  /// Creates a queued operation.
+  ///
+  /// - [operation]: The sync operation to be pushed.
+  /// - [enqueuedAt]: When the operation was added to the queue.
+  /// - [retryCount]: Number of failed push attempts.
+  /// - [status]: Current status.
+  /// - [lastError]: Last error message (if failed).
+  /// - [lastAttemptAt]: Timestamp of last push attempt.
+  const QueuedOperation({
+    required this.operation,
+    required this.enqueuedAt,
+    required this.retryCount,
+    required this.status,
+    this.lastError,
+    this.lastAttemptAt,
+  });
+
+  /// Deserializes from JSON.
+  factory QueuedOperation.fromJson(Map<String, dynamic> json) {
+    return QueuedOperation(
+      operation: _syncOperationFromJson(
+        json['operation'] as Map<String, dynamic>,
+      ),
+      enqueuedAt: DateTime.parse(json['enqueuedAt'] as String),
+      retryCount: json['retryCount'] as int,
+      status: QueueStatus.values.byName(json['status'] as String),
+      lastError: json['lastError'] as String?,
+      lastAttemptAt: json['lastAttemptAt'] != null
+          ? DateTime.parse(json['lastAttemptAt'] as String)
+          : null,
+    );
+  }
+
   /// The sync operation to be pushed.
   final SyncOperation operation;
 
@@ -403,15 +436,6 @@ class QueuedOperation {
   /// Timestamp of last push attempt.
   final DateTime? lastAttemptAt;
 
-  const QueuedOperation({
-    required this.operation,
-    required this.enqueuedAt,
-    required this.retryCount,
-    required this.status,
-    this.lastError,
-    this.lastAttemptAt,
-  });
-
   /// Serializes to JSON for persistence.
   Map<String, dynamic> toJson() => {
     'operation': _syncOperationToJson(operation),
@@ -421,26 +445,23 @@ class QueuedOperation {
     'lastError': lastError,
     'lastAttemptAt': lastAttemptAt?.toIso8601String(),
   };
-
-  /// Deserializes from JSON.
-  factory QueuedOperation.fromJson(Map<String, dynamic> json) {
-    return QueuedOperation(
-      operation: _syncOperationFromJson(
-        json['operation'] as Map<String, dynamic>,
-      ),
-      enqueuedAt: DateTime.parse(json['enqueuedAt'] as String),
-      retryCount: json['retryCount'] as int,
-      status: QueueStatus.values.byName(json['status'] as String),
-      lastError: json['lastError'] as String?,
-      lastAttemptAt: json['lastAttemptAt'] != null
-          ? DateTime.parse(json['lastAttemptAt'] as String)
-          : null,
-    );
-  }
 }
 
 /// Queue statistics.
 class QueueStats {
+  /// Creates queue statistics.
+  ///
+  /// - [total]: Total operations in queue.
+  /// - [pending]: Operations pending first attempt.
+  /// - [retrying]: Operations being retried.
+  /// - [failed]: Permanently failed operations.
+  const QueueStats({
+    required this.total,
+    required this.pending,
+    required this.retrying,
+    required this.failed,
+  });
+
   /// Total operations in queue.
   final int total;
 
@@ -452,13 +473,6 @@ class QueueStats {
 
   /// Permanently failed operations.
   final int failed;
-
-  const QueueStats({
-    required this.total,
-    required this.pending,
-    required this.retrying,
-    required this.failed,
-  });
 
   @override
   String toString() =>

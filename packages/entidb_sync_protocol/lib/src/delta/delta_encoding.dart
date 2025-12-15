@@ -32,15 +32,7 @@ enum DeltaOpType {
 /// A single delta operation on an entity field.
 @immutable
 class DeltaOperation {
-  /// Path to the field (dot-separated for nested fields).
-  final String path;
-
-  /// Type of operation.
-  final DeltaOpType opType;
-
-  /// New value (for set, increment, arrayAppend, arrayRemove).
-  final CborValue? value;
-
+  /// Creates a delta operation.
   const DeltaOperation({required this.path, required this.opType, this.value});
 
   /// Creates a set operation.
@@ -82,6 +74,34 @@ class DeltaOperation {
     );
   }
 
+  /// Deserializes from CBOR map.
+  factory DeltaOperation.fromCbor(CborMap map) {
+    final pathValue = map[CborString('path')];
+    final opValue = map[CborString('op')];
+
+    if (pathValue is! CborString || opValue is! CborString) {
+      throw const FormatException('Invalid DeltaOperation CBOR');
+    }
+
+    return DeltaOperation(
+      path: pathValue.toString(),
+      opType: DeltaOpType.values.firstWhere(
+        (t) => t.name == opValue.toString(),
+        orElse: () => throw FormatException('Unknown op type: $opValue'),
+      ),
+      value: map[CborString('value')],
+    );
+  }
+
+  /// Path to the field (dot-separated for nested fields).
+  final String path;
+
+  /// Type of operation.
+  final DeltaOpType opType;
+
+  /// New value (for set, increment, arrayAppend, arrayRemove).
+  final CborValue? value;
+
   /// Serializes to CBOR map.
   CborMap toCbor() {
     final map = <CborValue, CborValue>{
@@ -94,17 +114,6 @@ class DeltaOperation {
     }
 
     return CborMap(map);
-  }
-
-  /// Deserializes from CBOR map.
-  factory DeltaOperation.fromCbor(CborMap map) {
-    return DeltaOperation(
-      path: (map[CborString('path')] as CborString).toString(),
-      opType: DeltaOpType.values.firstWhere(
-        (t) => t.name == (map[CborString('op')] as CborString).toString(),
-      ),
-      value: map[CborString('value')],
-    );
   }
 
   @override
@@ -125,36 +134,14 @@ class DeltaOperation {
 /// A delta patch containing multiple operations.
 @immutable
 class DeltaPatch {
-  /// Base entity version this delta applies to.
-  final int baseVersion;
-
-  /// List of delta operations.
-  final List<DeltaOperation> operations;
-
+  /// Creates a delta patch.
   const DeltaPatch({required this.baseVersion, required this.operations});
-
-  /// Whether this is an empty patch.
-  bool get isEmpty => operations.isEmpty;
-
-  /// Whether this is a full replacement (single replace operation).
-  bool get isFullReplacement =>
-      operations.length == 1 && operations.first.opType == DeltaOpType.replace;
-
-  /// Serializes to CBOR bytes.
-  Uint8List toBytes() {
-    final ops = operations.map((op) => op.toCbor()).toList();
-    final map = CborMap({
-      CborString('baseVersion'): CborInt(BigInt.from(baseVersion)),
-      CborString('ops'): CborList(ops),
-    });
-    return Uint8List.fromList(cbor.encode(map));
-  }
 
   /// Deserializes from CBOR bytes.
   factory DeltaPatch.fromBytes(Uint8List bytes) {
     final cborValue = cbor.decode(bytes);
     if (cborValue is! CborMap) {
-      throw FormatException('Invalid DeltaPatch: expected CBOR map');
+      throw const FormatException('Invalid DeltaPatch: expected CBOR map');
     }
 
     final baseVersion = (cborValue[CborString('baseVersion')] as CborInt)
@@ -182,6 +169,29 @@ class DeltaPatch {
     );
   }
 
+  /// Base entity version this delta applies to.
+  final int baseVersion;
+
+  /// List of delta operations.
+  final List<DeltaOperation> operations;
+
+  /// Whether this is an empty patch.
+  bool get isEmpty => operations.isEmpty;
+
+  /// Whether this is a full replacement (single replace operation).
+  bool get isFullReplacement =>
+      operations.length == 1 && operations.first.opType == DeltaOpType.replace;
+
+  /// Serializes to CBOR bytes.
+  Uint8List toBytes() {
+    final ops = operations.map((op) => op.toCbor()).toList();
+    final map = CborMap({
+      CborString('baseVersion'): CborInt(BigInt.from(baseVersion)),
+      CborString('ops'): CborList(ops),
+    });
+    return Uint8List.fromList(cbor.encode(map));
+  }
+
   @override
   String toString() =>
       'DeltaPatch(baseVersion: $baseVersion, ops: ${operations.length})';
@@ -189,13 +199,14 @@ class DeltaPatch {
 
 /// Computes deltas between two CBOR entities.
 class DeltaEncoder {
+  /// Creates a delta encoder with optional configuration.
+  const DeltaEncoder({this.maxDepth = 10, this.replacementThreshold = 0.7});
+
   /// Maximum depth for recursive diff.
   final int maxDepth;
 
   /// Threshold for switching to full replacement (ratio of changed fields).
   final double replacementThreshold;
-
-  const DeltaEncoder({this.maxDepth = 10, this.replacementThreshold = 0.7});
 
   /// Computes a delta patch from [oldEntity] to [newEntity].
   ///
@@ -381,6 +392,7 @@ class DeltaEncoder {
 
 /// Applies delta patches to entities.
 class DeltaDecoder {
+  /// Creates a delta decoder.
   const DeltaDecoder();
 
   /// Applies a delta patch to an entity.

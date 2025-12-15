@@ -9,17 +9,6 @@ import 'package:shelf/shelf.dart';
 
 /// Configuration for compression middleware.
 class CompressionConfig {
-  /// Minimum response size in bytes to trigger compression.
-  /// Responses smaller than this won't be compressed (overhead not worth it).
-  final int minSizeBytes;
-
-  /// Content types that should be compressed.
-  /// CBOR and JSON are highly compressible.
-  final List<String> compressibleTypes;
-
-  /// Compression level (1-9). Higher = better compression, slower.
-  final int level;
-
   /// Creates compression configuration.
   const CompressionConfig({
     this.minSizeBytes = 1024, // 1KB minimum
@@ -46,6 +35,17 @@ class CompressionConfig {
     minSizeBytes: 2048,
     level: 1,
   );
+
+  /// Minimum response size in bytes to trigger compression.
+  /// Responses smaller than this won't be compressed (overhead not worth it).
+  final int minSizeBytes;
+
+  /// Content types that should be compressed.
+  /// CBOR and JSON are highly compressible.
+  final List<String> compressibleTypes;
+
+  /// Compression level (1-9). Higher = better compression, slower.
+  final int level;
 }
 
 /// Creates compression middleware.
@@ -212,8 +212,8 @@ class CompressionStats {
 /// print(stats);
 /// ```
 Middleware createCompressionMiddlewareWithStats({
-  CompressionConfig config = CompressionConfig.defaultConfig,
   required CompressionStats stats,
+  CompressionConfig config = CompressionConfig.defaultConfig,
 }) {
   return (Handler innerHandler) {
     return (Request request) async {

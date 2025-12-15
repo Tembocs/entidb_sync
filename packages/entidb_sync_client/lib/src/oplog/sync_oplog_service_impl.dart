@@ -10,21 +10,34 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:cbor/cbor.dart';
-import 'package:entidb/src/engine/wal/wal_constants.dart';
-import 'package:entidb/src/engine/wal/wal_reader.dart';
-import 'package:entidb/src/engine/wal/wal_record.dart';
 import 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
 
 import 'sync_oplog_service.dart';
+import 'wal_adapter.dart';
 
 /// Default implementation of [SyncOplogService].
 ///
 /// Observes the EntiDB WAL file and transforms physical log records
 /// into logical [SyncOperation] events for synchronization.
 class SyncOplogServiceImpl implements SyncOplogService {
+  /// Creates a new SyncOplogServiceImpl.
+  ///
+  /// - [config]: Configuration for oplog observation.
+  /// - [transformer]: Optional custom operation transformer.
+  /// - [walAdapter]: Optional custom WAL adapter (for testing).
+  SyncOplogServiceImpl({
+    required OplogConfig config,
+    OperationTransformer? transformer,
+    WalAdapter? walAdapter,
+  }) : _config = config,
+       _transformer = transformer ?? OperationTransformerImpl(),
+       _walAdapter = walAdapter ?? EntiDBWalAdapter(walPath: config.walPath),
+       _changeController = StreamController<SyncOperation>.broadcast();
+
   final OplogConfig _config;
   final StreamController<SyncOperation> _changeController;
   final OperationTransformer _transformer;
+  final WalAdapter _walAdapter;
 
   int _currentOpId = 0;
   bool _isRunning = false;
@@ -37,13 +50,6 @@ class SyncOplogServiceImpl implements SyncOplogService {
 
   /// Tracks committed transactions for filtering.
   final Set<int> _committedTransactions = {};
-
-  SyncOplogServiceImpl({
-    required OplogConfig config,
-    OperationTransformer? transformer,
-  }) : _config = config,
-       _transformer = transformer ?? OperationTransformerImpl(),
-       _changeController = StreamController<SyncOperation>.broadcast();
 
   @override
   String get dbId => _config.dbId;
@@ -138,35 +144,33 @@ class SyncOplogServiceImpl implements SyncOplogService {
 
     try {
       final walFile = File(_config.walPath);
-      if (!await walFile.exists()) return;
-
-      final reader = WalReader(filePath: _config.walPath);
+      if (!walFile.existsSync()) return;
 
       try {
-        await reader.open();
-      } catch (e) {
+        await _walAdapter.open();
+      } on WalOpenException {
         // WAL file might be in use or corrupted, retry later
         return;
       }
 
       try {
         // First pass: identify committed transactions
-        await _analyzeTransactions(reader);
+        await _analyzeTransactions();
 
         // Seek to last processed position
-        if (_lastProcessedLsn > 0 && _lastProcessedLsn < reader.length) {
+        if (_lastProcessedLsn > 0 && _lastProcessedLsn < _walAdapter.length) {
           try {
-            await reader.seekToLsn(Lsn(_lastProcessedLsn));
-          } catch (e) {
+            await _walAdapter.seekToLsn(WalLsn(_lastProcessedLsn));
+          } on WalSeekException {
             // If seek fails, start from beginning
             // (but skip already processed records)
           }
         }
 
         // Second pass: emit operations from committed transactions
-        await _emitCommittedOperations(reader);
+        await _emitCommittedOperations();
       } finally {
-        await reader.close();
+        await _walAdapter.close();
       }
     } catch (e) {
       // Log error but continue polling
@@ -175,23 +179,22 @@ class SyncOplogServiceImpl implements SyncOplogService {
   }
 
   /// Analyzes WAL to identify committed transactions.
-  Future<void> _analyzeTransactions(WalReader reader) async {
+  Future<void> _analyzeTransactions() async {
     _committedTransactions.clear();
 
-    await reader.forEach((record) async {
+    await _walAdapter.forEach((record) async {
       if (record.type == WalRecordType.commitTransaction) {
         _committedTransactions.add(record.transactionId);
       }
       return true;
     });
 
-    // Reset reader position
-    await reader.seekToLsn(Lsn.first);
+    // Note: forEach auto-resets reader position, so no seek needed
   }
 
   /// Emits operations from committed transactions.
-  Future<void> _emitCommittedOperations(WalReader reader) async {
-    await reader.forEach((record) async {
+  Future<void> _emitCommittedOperations() async {
+    await _walAdapter.forEach((record) async {
       // Skip if already processed
       if (record.lsn.value <= _lastProcessedLsn) {
         return true;

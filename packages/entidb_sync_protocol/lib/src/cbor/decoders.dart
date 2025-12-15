@@ -31,7 +31,7 @@ List<Map<String, dynamic>> decodeListFromCbor(Uint8List bytes) {
       if (item is CborMap)
         _decodeMap(item)
       else
-        throw FormatException('Array item is not a map'),
+        throw const FormatException('Array item is not a map'),
   ];
 }
 
@@ -77,7 +77,8 @@ String? extractString(CborMap map, String key) {
   if (value == null || value is CborNull) return null;
   if (value is CborString) return value.toString();
   throw FormatException(
-      'Expected string for key "$key", got ${value.runtimeType}');
+    'Expected string for key "$key", got ${value.runtimeType}',
+  );
 }
 
 /// Safely extracts an int from a CBOR map.
@@ -86,7 +87,8 @@ int? extractInt(CborMap map, String key) {
   if (value == null || value is CborNull) return null;
   if (value is CborInt) return value.toInt();
   throw FormatException(
-      'Expected int for key "$key", got ${value.runtimeType}');
+    'Expected int for key "$key", got ${value.runtimeType}',
+  );
 }
 
 /// Safely extracts a bool from a CBOR map.
@@ -95,7 +97,8 @@ bool? extractBool(CborMap map, String key) {
   if (value == null || value is CborNull) return null;
   if (value is CborBool) return value.value;
   throw FormatException(
-      'Expected bool for key "$key", got ${value.runtimeType}');
+    'Expected bool for key "$key", got ${value.runtimeType}',
+  );
 }
 
 /// Safely extracts bytes from a CBOR map.
@@ -104,7 +107,8 @@ Uint8List? extractBytes(CborMap map, String key) {
   if (value == null || value is CborNull) return null;
   if (value is CborBytes) return Uint8List.fromList(value.bytes);
   throw FormatException(
-      'Expected bytes for key "$key", got ${value.runtimeType}');
+    'Expected bytes for key "$key", got ${value.runtimeType}',
+  );
 }
 
 /// Safely extracts a list from a CBOR map.
@@ -113,7 +117,8 @@ CborList? extractList(CborMap map, String key) {
   if (value == null || value is CborNull) return null;
   if (value is CborList) return value;
   throw FormatException(
-      'Expected list for key "$key", got ${value.runtimeType}');
+    'Expected list for key "$key", got ${value.runtimeType}',
+  );
 }
 
 /// Safely extracts a nested map from a CBOR map.
@@ -122,5 +127,6 @@ CborMap? extractMap(CborMap map, String key) {
   if (value == null || value is CborNull) return null;
   if (value is CborMap) return value;
   throw FormatException(
-      'Expected map for key "$key", got ${value.runtimeType}');
+    'Expected map for key "$key", got ${value.runtimeType}',
+  );
 }

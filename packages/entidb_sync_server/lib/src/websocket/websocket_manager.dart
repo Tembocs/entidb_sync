@@ -12,6 +12,18 @@ import 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
 
 /// Configuration for WebSocket connections.
 class WebSocketConfig {
+  /// Creates WebSocket configuration.
+  const WebSocketConfig({
+    this.keepAliveIntervalSeconds = 30,
+    this.pingTimeoutSeconds = 10,
+    this.maxConnectionsPerDevice = 3,
+    this.maxTotalConnections = 1000,
+    this.maxMessageSize = 1024 * 1024, // 1MB
+  });
+
+  /// Default configuration.
+  static const WebSocketConfig defaultConfig = WebSocketConfig();
+
   /// How often to send keepalive pings (in seconds).
   final int keepAliveIntervalSeconds;
 
@@ -26,18 +38,6 @@ class WebSocketConfig {
 
   /// Maximum message size in bytes.
   final int maxMessageSize;
-
-  /// Creates WebSocket configuration.
-  const WebSocketConfig({
-    this.keepAliveIntervalSeconds = 30,
-    this.pingTimeoutSeconds = 10,
-    this.maxConnectionsPerDevice = 3,
-    this.maxTotalConnections = 1000,
-    this.maxMessageSize = 1024 * 1024, // 1MB
-  });
-
-  /// Default configuration.
-  static const WebSocketConfig defaultConfig = WebSocketConfig();
 }
 
 /// Message types for WebSocket protocol.
@@ -78,16 +78,8 @@ enum WsMessageType {
 
 /// Represents a WebSocket message.
 class WsMessage {
-  /// Message type.
-  final WsMessageType type;
-
-  /// Message ID for correlation.
-  final String? id;
-
-  /// Message payload.
-  final Map<String, dynamic> data;
-
-  const WsMessage({required this.type, this.id, required this.data});
+  /// Creates a WebSocket message.
+  const WsMessage({required this.type, required this.data, this.id});
 
   /// Parses a WebSocket message from JSON string.
   factory WsMessage.fromJson(String json) {
@@ -192,6 +184,15 @@ class WsMessage {
     );
   }
 
+  /// Message type.
+  final WsMessageType type;
+
+  /// Message ID for correlation.
+  final String? id;
+
+  /// Message payload.
+  final Map<String, dynamic> data;
+
   /// Converts to JSON string.
   String toJson() {
     return jsonEncode({
@@ -204,6 +205,16 @@ class WsMessage {
 
 /// Represents a client WebSocket connection.
 class WsConnection {
+  /// Creates a new WebSocket connection.
+  WsConnection({
+    required this.connectionId,
+    required this.deviceId,
+    required this.dbId,
+    required this.socket,
+    this.collections,
+  }) : connectedAt = DateTime.now(),
+       _incomingController = StreamController<WsMessage>.broadcast();
+
   /// Unique connection ID.
   final String connectionId;
 
@@ -237,16 +248,6 @@ class WsConnection {
   /// Stream controller for incoming messages.
   final StreamController<WsMessage> _incomingController;
 
-  /// Creates a new WebSocket connection.
-  WsConnection({
-    required this.connectionId,
-    required this.deviceId,
-    required this.dbId,
-    required this.socket,
-    this.collections,
-  }) : connectedAt = DateTime.now(),
-       _incomingController = StreamController<WsMessage>.broadcast();
-
   /// Stream of incoming messages.
   Stream<WsMessage> get incoming => _incomingController.stream;
 
@@ -275,6 +276,16 @@ typedef PushHandler = Future<PushResponse> Function(PushRequest request);
 
 /// Manages WebSocket connections for real-time sync.
 class WebSocketManager {
+  /// Creates a WebSocket manager.
+  WebSocketManager({
+    required this.onPull,
+    required this.onPush,
+    required this.getCurrentCursor,
+    this.config = WebSocketConfig.defaultConfig,
+  }) {
+    _startKeepalive();
+  }
+
   /// Configuration.
   final WebSocketConfig config;
 
@@ -298,16 +309,6 @@ class WebSocketManager {
 
   /// Event counter for message IDs.
   int _eventCounter = 0;
-
-  /// Creates a WebSocket manager.
-  WebSocketManager({
-    this.config = WebSocketConfig.defaultConfig,
-    required this.onPull,
-    required this.onPush,
-    required this.getCurrentCursor,
-  }) {
-    _startKeepalive();
-  }
 
   /// Handles a new WebSocket connection upgrade.
   ///

@@ -17,29 +17,12 @@ import '../models/sync_operation.dart';
 /// POST /v1/push
 @immutable
 class PushRequest {
-  /// Database identifier.
-  final String dbId;
-
-  /// Device identifier.
-  final String deviceId;
-
-  /// Operations to push to server.
-  final List<SyncOperation> ops;
-
+  /// Creates a push request.
   const PushRequest({
     required this.dbId,
     required this.deviceId,
     required this.ops,
   });
-
-  /// Serializes to CBOR bytes.
-  Uint8List toBytes() {
-    return encodeToCbor({
-      'dbId': dbId,
-      'deviceId': deviceId,
-      'ops': [for (final op in ops) _syncOpToMap(op)],
-    });
-  }
 
   /// Deserializes from CBOR bytes.
   factory PushRequest.fromBytes(Uint8List bytes) {
@@ -55,6 +38,24 @@ class PushRequest {
     );
   }
 
+  /// Database identifier.
+  final String dbId;
+
+  /// Device identifier.
+  final String deviceId;
+
+  /// Operations to push to server.
+  final List<SyncOperation> ops;
+
+  /// Serializes to CBOR bytes.
+  Uint8List toBytes() {
+    return encodeToCbor({
+      'dbId': dbId,
+      'deviceId': deviceId,
+      'ops': [for (final op in ops) _syncOpToMap(op)],
+    });
+  }
+
   @override
   String toString() =>
       'PushRequest(dbId: $dbId, deviceId: $deviceId, ops: ${ops.length})';
@@ -63,32 +64,11 @@ class PushRequest {
 /// Push response from server.
 @immutable
 class PushResponse {
-  /// Last operation ID that was successfully accepted.
-  ///
-  /// Operations with opId <= this value were accepted.
-  /// Operations with opId > this value may have conflicts.
-  final int acknowledgedUpToOpId;
-
-  /// List of conflicts that need resolution.
-  ///
-  /// Empty if all operations were accepted.
-  final List<Conflict> conflicts;
-
+  /// Creates a push response.
   const PushResponse({
     required this.acknowledgedUpToOpId,
     required this.conflicts,
   });
-
-  /// Whether all operations were accepted without conflicts.
-  bool get isFullyAccepted => conflicts.isEmpty;
-
-  /// Serializes to CBOR bytes.
-  Uint8List toBytes() {
-    return encodeToCbor({
-      'acknowledgedUpToOpId': acknowledgedUpToOpId,
-      'conflicts': [for (final c in conflicts) _conflictToMap(c)],
-    });
-  }
 
   /// Deserializes from CBOR bytes.
   factory PushResponse.fromBytes(Uint8List bytes) {
@@ -101,6 +81,28 @@ class PushResponse {
           _conflictFromMap(cMap as Map<String, dynamic>),
       ],
     );
+  }
+
+  /// Last operation ID that was successfully accepted.
+  ///
+  /// Operations with opId <= this value were accepted.
+  /// Operations with opId > this value may have conflicts.
+  final int acknowledgedUpToOpId;
+
+  /// List of conflicts that need resolution.
+  ///
+  /// Empty if all operations were accepted.
+  final List<Conflict> conflicts;
+
+  /// Whether all operations were accepted without conflicts.
+  bool get isFullyAccepted => conflicts.isEmpty;
+
+  /// Serializes to CBOR bytes.
+  Uint8List toBytes() {
+    return encodeToCbor({
+      'acknowledgedUpToOpId': acknowledgedUpToOpId,
+      'conflicts': [for (final c in conflicts) _conflictToMap(c)],
+    });
   }
 
   @override
@@ -168,7 +170,8 @@ Conflict _conflictFromMap(Map<String, dynamic> map) {
       entityCbor: serverStateMap['entityCbor'] as Uint8List,
       lastModified: serverStateMap['lastModified'] != null
           ? DateTime.fromMillisecondsSinceEpoch(
-              serverStateMap['lastModified'] as int)
+              serverStateMap['lastModified'] as int,
+            )
           : null,
     ),
   );

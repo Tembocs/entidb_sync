@@ -3,8 +3,6 @@
 /// Tests for the integrated sync manager.
 library;
 
-import 'dart:async';
-
 import 'package:entidb_sync_client/entidb_sync_client.dart';
 import 'package:test/test.dart';
 

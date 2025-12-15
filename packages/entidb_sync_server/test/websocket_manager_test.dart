@@ -1,8 +1,6 @@
 /// WebSocket Manager Tests
 ///
 /// Tests for WebSocket connection management and message handling.
-import 'dart:async';
-import 'dart:io';
 
 import 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
 import 'package:entidb_sync_server/entidb_sync_server.dart';

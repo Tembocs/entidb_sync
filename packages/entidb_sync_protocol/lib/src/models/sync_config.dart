@@ -8,6 +8,17 @@ import 'package:meta/meta.dart';
 /// Configuration for sync client.
 @immutable
 class SyncConfig {
+  /// Creates a sync configuration.
+  const SyncConfig({
+    required this.serverUrl,
+    required this.dbId,
+    required this.deviceId,
+    required this.authTokenProvider,
+    this.syncIntervalSeconds = 60,
+    this.maxBatchSize = 100,
+    this.retryConfig = const RetryConfig(),
+  });
+
   /// Server URL (HTTPS required in production).
   final Uri serverUrl;
 
@@ -29,18 +40,9 @@ class SyncConfig {
   /// Retry policy settings.
   final RetryConfig retryConfig;
 
-  const SyncConfig({
-    required this.serverUrl,
-    required this.dbId,
-    required this.deviceId,
-    required this.authTokenProvider,
-    this.syncIntervalSeconds = 60,
-    this.maxBatchSize = 100,
-    this.retryConfig = const RetryConfig(),
-  });
-
   @override
-  String toString() => 'SyncConfig('
+  String toString() =>
+      'SyncConfig('
       'serverUrl: $serverUrl, '
       'dbId: $dbId, '
       'deviceId: $deviceId'
@@ -50,6 +52,14 @@ class SyncConfig {
 /// Retry configuration for sync operations.
 @immutable
 class RetryConfig {
+  /// Creates a retry configuration.
+  const RetryConfig({
+    this.maxRetries = 5,
+    this.initialDelayMs = 1000,
+    this.maxDelayMs = 30000,
+    this.backoffMultiplier = 2.0,
+  });
+
   /// Maximum retry attempts.
   final int maxRetries;
 
@@ -61,11 +71,4 @@ class RetryConfig {
 
   /// Backoff multiplier.
   final double backoffMultiplier;
-
-  const RetryConfig({
-    this.maxRetries = 5,
-    this.initialDelayMs = 1000,
-    this.maxDelayMs = 30000,
-    this.backoffMultiplier = 2.0,
-  });
 }

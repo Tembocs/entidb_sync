@@ -9,6 +9,15 @@ import 'package:shelf/shelf.dart';
 
 /// Configuration for JWT authentication.
 class JwtAuthConfig {
+  /// Creates JWT authentication configuration.
+  const JwtAuthConfig({
+    required this.secret,
+    this.issuer,
+    this.audience,
+    this.required = true,
+    this.publicPaths = const ['/health', '/v1/version'],
+  });
+
   /// Secret key for verifying JWT signatures.
   final String secret;
 
@@ -23,36 +32,10 @@ class JwtAuthConfig {
 
   /// List of paths that don't require authentication.
   final List<String> publicPaths;
-
-  const JwtAuthConfig({
-    required this.secret,
-    this.issuer,
-    this.audience,
-    this.required = true,
-    this.publicPaths = const ['/health', '/v1/version'],
-  });
 }
 
 /// Result of JWT validation.
 class JwtValidationResult {
-  /// Whether the token is valid.
-  final bool isValid;
-
-  /// Error message if validation failed.
-  final String? error;
-
-  /// Decoded JWT payload if valid.
-  final Map<String, dynamic>? payload;
-
-  /// Subject (user ID) from the token.
-  final String? subject;
-
-  /// Device ID from the token (optional custom claim).
-  final String? deviceId;
-
-  /// Database ID from the token (optional custom claim).
-  final String? dbId;
-
   const JwtValidationResult._({
     required this.isValid,
     this.error,
@@ -82,6 +65,24 @@ class JwtValidationResult {
   factory JwtValidationResult.failure(String error) {
     return JwtValidationResult._(isValid: false, error: error);
   }
+
+  /// Whether the token is valid.
+  final bool isValid;
+
+  /// Error message if validation failed.
+  final String? error;
+
+  /// Decoded JWT payload if valid.
+  final Map<String, dynamic>? payload;
+
+  /// Subject (user ID) from the token.
+  final String? subject;
+
+  /// Device ID from the token (optional custom claim).
+  final String? deviceId;
+
+  /// Database ID from the token (optional custom claim).
+  final String? dbId;
 }
 
 /// Creates JWT authentication middleware.

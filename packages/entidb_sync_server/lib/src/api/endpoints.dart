@@ -10,7 +10,7 @@ import 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
-import '../metrics/prometheus_metrics.dart';
+import '../db/entidb_sync_service.dart';
 import '../middleware/metrics_middleware.dart';
 import '../sse/sse_manager.dart';
 import '../sync/sync_service.dart';
@@ -102,6 +102,88 @@ Router createSyncRouter(SyncService syncService, {SseManager? sseManager}) {
       return _handleSseRequest(request, syncService, sseManager);
     });
   }
+
+  return router;
+}
+
+/// Creates the sync API router using EntiDB-backed persistent storage.
+///
+/// This version uses [EntiDBSyncService] for persistent storage instead of
+/// in-memory storage. Data survives server restarts.
+///
+/// - [syncService]: The EntiDB-backed sync service.
+Router createSyncRouterWithEntiDB(EntiDBSyncService syncService) {
+  final router = Router();
+
+  // Health check
+  router.get('/health', (Request request) {
+    return Response.ok('{"status": "ok"}', headers: _jsonHeaders);
+  });
+
+  // Prometheus metrics endpoint
+  router.get('/metrics', metricsHandler);
+
+  // Protocol version info
+  router.get('/v1/version', (Request request) {
+    return Response.ok(
+      '{"version": ${ProtocolVersion.v1.current}, "minSupported": ${ProtocolVersion.v1.minSupported}}',
+      headers: _jsonHeaders,
+    );
+  });
+
+  // Handshake endpoint
+  router.post('/v1/handshake', (Request request) async {
+    try {
+      final body = await request.read().expand((x) => x).toList();
+      final bytes = Uint8List.fromList(body);
+
+      final handshakeRequest = HandshakeRequest.fromBytes(bytes);
+      final response = await syncService.handleHandshake(handshakeRequest);
+
+      return Response.ok(response.toBytes(), headers: _cborHeaders);
+    } catch (e) {
+      return _errorResponse(400, 'Invalid handshake request: $e');
+    }
+  });
+
+  // Pull endpoint
+  router.post('/v1/pull', (Request request) async {
+    try {
+      final body = await request.read().expand((x) => x).toList();
+      final bytes = Uint8List.fromList(body);
+
+      final pullRequest = PullRequest.fromBytes(bytes);
+      final response = await syncService.handlePull(pullRequest);
+
+      return Response.ok(response.toBytes(), headers: _cborHeaders);
+    } catch (e) {
+      return _errorResponse(400, 'Invalid pull request: $e');
+    }
+  });
+
+  // Push endpoint
+  router.post('/v1/push', (Request request) async {
+    try {
+      final body = await request.read().expand((x) => x).toList();
+      final bytes = Uint8List.fromList(body);
+
+      final pushRequest = PushRequest.fromBytes(bytes);
+      final response = await syncService.handlePush(pushRequest);
+
+      return Response.ok(response.toBytes(), headers: _cborHeaders);
+    } catch (e) {
+      return _errorResponse(400, 'Invalid push request: $e');
+    }
+  });
+
+  // Server stats (for debugging)
+  router.get('/v1/stats', (Request request) async {
+    final stats = await syncService.getStats();
+    return Response.ok(
+      '{"cursor": ${stats['cursor']}, "oplogSize": ${stats['oplogSize']}, "deviceCount": ${stats['deviceCount']}}',
+      headers: _jsonHeaders,
+    );
+  });
 
   return router;
 }

@@ -22,21 +22,8 @@ import 'package:synchronized/synchronized.dart';
 
 /// Stored sync operation entity.
 class StoredSyncOp implements Entity {
-  @override
-  final String? id;
-  final int opId;
-  final String dbId;
-  final String deviceId;
-  final String collection;
-  final String entityId;
-  final String opType;
-  final int entityVersion;
-  final String? entityCborBase64;
-  final int timestampMs;
-  final int clientOpId;
-
+  /// Creates a stored sync operation.
   const StoredSyncOp({
-    this.id,
     required this.opId,
     required this.dbId,
     required this.deviceId,
@@ -44,25 +31,13 @@ class StoredSyncOp implements Entity {
     required this.entityId,
     required this.opType,
     required this.entityVersion,
-    this.entityCborBase64,
     required this.timestampMs,
     required this.clientOpId,
+    this.id,
+    this.entityCborBase64,
   });
 
-  @override
-  Map<String, dynamic> toMap() => {
-    'opId': opId,
-    'dbId': dbId,
-    'deviceId': deviceId,
-    'collection': collection,
-    'entityId': entityId,
-    'opType': opType,
-    'entityVersion': entityVersion,
-    'entityCborBase64': entityCborBase64,
-    'timestampMs': timestampMs,
-    'clientOpId': clientOpId,
-  };
-
+  /// Creates a stored sync operation from a map.
   static StoredSyncOp fromMap(String id, Map<String, dynamic> map) {
     return StoredSyncOp(
       id: id,
@@ -78,6 +53,53 @@ class StoredSyncOp implements Entity {
       clientOpId: map['clientOpId'] as int,
     );
   }
+
+  @override
+  final String? id;
+
+  /// Server-assigned operation ID.
+  final int opId;
+
+  /// Database identifier.
+  final String dbId;
+
+  /// Device identifier.
+  final String deviceId;
+
+  /// Collection name.
+  final String collection;
+
+  /// Entity identifier.
+  final String entityId;
+
+  /// Operation type (upsert or delete).
+  final String opType;
+
+  /// Entity version for conflict detection.
+  final int entityVersion;
+
+  /// Base64-encoded CBOR entity data.
+  final String? entityCborBase64;
+
+  /// Timestamp in milliseconds.
+  final int timestampMs;
+
+  /// Client's original operation ID.
+  final int clientOpId;
+
+  @override
+  Map<String, dynamic> toMap() => {
+    'opId': opId,
+    'dbId': dbId,
+    'deviceId': deviceId,
+    'collection': collection,
+    'entityId': entityId,
+    'opType': opType,
+    'entityVersion': entityVersion,
+    'entityCborBase64': entityCborBase64,
+    'timestampMs': timestampMs,
+    'clientOpId': clientOpId,
+  };
 
   /// Converts to a SyncOperation for the protocol.
   SyncOperation toSyncOperation() {
@@ -99,29 +121,16 @@ class StoredSyncOp implements Entity {
 
 /// Stored device entity.
 class StoredDevice implements Entity {
-  @override
-  final String? id;
-  final String dbId;
-  final String registeredAt;
-  final String? lastSyncedAt;
-  final int cursor;
-
+  /// Creates a stored device.
   const StoredDevice({
-    this.id,
     required this.dbId,
     required this.registeredAt,
-    this.lastSyncedAt,
     required this.cursor,
+    this.id,
+    this.lastSyncedAt,
   });
 
-  @override
-  Map<String, dynamic> toMap() => {
-    'dbId': dbId,
-    'registeredAt': registeredAt,
-    'lastSyncedAt': lastSyncedAt,
-    'cursor': cursor,
-  };
-
+  /// Creates a stored device from a map.
   static StoredDevice fromMap(String id, Map<String, dynamic> map) {
     return StoredDevice(
       id: id,
@@ -132,6 +141,30 @@ class StoredDevice implements Entity {
     );
   }
 
+  @override
+  final String? id;
+
+  /// Database identifier.
+  final String dbId;
+
+  /// When the device was registered.
+  final String registeredAt;
+
+  /// When the device last synced.
+  final String? lastSyncedAt;
+
+  /// Device's cursor position.
+  final int cursor;
+
+  @override
+  Map<String, dynamic> toMap() => {
+    'dbId': dbId,
+    'registeredAt': registeredAt,
+    'lastSyncedAt': lastSyncedAt,
+    'cursor': cursor,
+  };
+
+  /// Creates a copy with updated values.
   StoredDevice copyWith({
     String? id,
     String? dbId,
@@ -151,23 +184,14 @@ class StoredDevice implements Entity {
 
 /// Stored metadata entity.
 class StoredMeta implements Entity {
-  @override
-  final String? id;
-  final int globalOpId;
-  final String updatedAt;
-
+  /// Creates stored metadata.
   const StoredMeta({
-    this.id,
     required this.globalOpId,
     required this.updatedAt,
+    this.id,
   });
 
-  @override
-  Map<String, dynamic> toMap() => {
-    'globalOpId': globalOpId,
-    'updatedAt': updatedAt,
-  };
-
+  /// Creates stored metadata from a map.
   static StoredMeta fromMap(String id, Map<String, dynamic> map) {
     return StoredMeta(
       id: id,
@@ -175,6 +199,21 @@ class StoredMeta implements Entity {
       updatedAt: map['updatedAt'] as String,
     );
   }
+
+  @override
+  final String? id;
+
+  /// Global operation ID counter.
+  final int globalOpId;
+
+  /// When the metadata was last updated.
+  final String updatedAt;
+
+  @override
+  Map<String, dynamic> toMap() => {
+    'globalOpId': globalOpId,
+    'updatedAt': updatedAt,
+  };
 }
 
 /// EntiDB-backed sync service with persistent storage.
@@ -182,6 +221,11 @@ class StoredMeta implements Entity {
 /// This implementation uses EntiDB to store the server's sync state,
 /// including the operation log, device cursors, and metadata.
 class EntiDBSyncService {
+  /// Creates a new EntiDB-backed sync service.
+  ///
+  /// - [db]: The EntiDB instance to use for storage.
+  EntiDBSyncService({required EntiDB db}) : _db = db;
+
   final EntiDB _db;
   final Lock _lock = Lock();
 
@@ -197,11 +241,6 @@ class EntiDBSyncService {
   static const _opsCollectionName = '_sync_ops';
   static const _devicesCollectionName = '_sync_devices';
   static const _metaCollectionName = '_sync_meta';
-
-  /// Creates a new EntiDB-backed sync service.
-  ///
-  /// - [db]: The EntiDB instance to use for storage.
-  EntiDBSyncService({required EntiDB db}) : _db = db;
 
   /// Initializes the sync service.
   ///
@@ -254,11 +293,7 @@ class EntiDBSyncService {
 
       return HandshakeResponse(
         serverCursor: _globalOpId,
-        capabilities: const ServerCapabilities(
-          pull: true,
-          push: true,
-          sse: false,
-        ),
+        capabilities: const ServerCapabilities(),
       );
     });
   }

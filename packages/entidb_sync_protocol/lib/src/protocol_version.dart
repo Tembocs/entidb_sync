@@ -11,16 +11,14 @@ const int kMinSupportedVersion = 1;
 
 /// Protocol version information.
 class ProtocolVersion {
+  /// Creates protocol version information.
+  const ProtocolVersion({required this.current, required this.minSupported});
+
   /// Current version.
   final int current;
 
   /// Minimum supported version.
   final int minSupported;
-
-  const ProtocolVersion({
-    required this.current,
-    required this.minSupported,
-  });
 
   /// Default protocol version.
   static const ProtocolVersion v1 = ProtocolVersion(

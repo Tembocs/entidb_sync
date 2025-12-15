@@ -55,11 +55,7 @@ class SyncService {
 
       return HandshakeResponse(
         serverCursor: _globalOpId,
-        capabilities: ServerCapabilities(
-          pull: true,
-          push: true,
-          sse: _sseManager != null,
-        ),
+        capabilities: ServerCapabilities(sse: _sseManager != null),
       );
     });
   }

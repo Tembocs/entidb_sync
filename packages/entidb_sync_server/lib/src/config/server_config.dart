@@ -7,33 +7,7 @@ import 'dart:io';
 
 /// Configuration for the sync server.
 class ServerConfig {
-  /// Host address to bind to.
-  final String host;
-
-  /// Port to listen on.
-  final int port;
-
-  /// Path to the EntiDB database file.
-  final String dbPath;
-
-  /// JWT secret for token validation.
-  final String jwtSecret;
-
-  /// Whether to enable CORS headers.
-  final bool enableCors;
-
-  /// Allowed origins for CORS.
-  final List<String> corsAllowedOrigins;
-
-  /// Maximum operations per pull request.
-  final int maxPullLimit;
-
-  /// Maximum operations per push request.
-  final int maxPushBatchSize;
-
-  /// Log level (INFO, WARNING, SEVERE, etc.)
-  final String logLevel;
-
+  /// Creates a server configuration.
   const ServerConfig({
     this.host = '0.0.0.0',
     this.port = 8080,
@@ -61,6 +35,33 @@ class ServerConfig {
       logLevel: env['LOG_LEVEL'] ?? 'INFO',
     );
   }
+
+  /// Host address to bind to.
+  final String host;
+
+  /// Port to listen on.
+  final int port;
+
+  /// Path to the EntiDB database file.
+  final String dbPath;
+
+  /// JWT secret for token validation.
+  final String jwtSecret;
+
+  /// Whether to enable CORS headers.
+  final bool enableCors;
+
+  /// Allowed origins for CORS.
+  final List<String> corsAllowedOrigins;
+
+  /// Maximum operations per pull request.
+  final int maxPullLimit;
+
+  /// Maximum operations per push request.
+  final int maxPushBatchSize;
+
+  /// Log level (INFO, WARNING, SEVERE, etc.)
+  final String logLevel;
 
   @override
   String toString() =>

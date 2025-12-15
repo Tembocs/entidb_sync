@@ -16,6 +16,25 @@ import '../models/sync_operation.dart';
 /// POST /v1/pull
 @immutable
 class PullRequest {
+  /// Creates a pull request.
+  const PullRequest({
+    required this.dbId,
+    required this.sinceCursor,
+    this.limit = 100,
+    this.collections,
+  });
+
+  /// Deserializes from CBOR bytes.
+  factory PullRequest.fromBytes(Uint8List bytes) {
+    final map = decodeFromCbor(bytes);
+    return PullRequest(
+      dbId: map['dbId'] as String,
+      sinceCursor: map['sinceCursor'] as int,
+      limit: map['limit'] as int? ?? 100,
+      collections: (map['collections'] as List?)?.cast<String>(),
+    );
+  }
+
   /// Database identifier.
   final String dbId;
 
@@ -34,13 +53,6 @@ class PullRequest {
   /// If provided, only operations for these collections are returned.
   final List<String>? collections;
 
-  const PullRequest({
-    required this.dbId,
-    required this.sinceCursor,
-    this.limit = 100,
-    this.collections,
-  });
-
   /// Serializes to CBOR bytes.
   Uint8List toBytes() {
     return encodeToCbor({
@@ -51,17 +63,6 @@ class PullRequest {
     });
   }
 
-  /// Deserializes from CBOR bytes.
-  factory PullRequest.fromBytes(Uint8List bytes) {
-    final map = decodeFromCbor(bytes);
-    return PullRequest(
-      dbId: map['dbId'] as String,
-      sinceCursor: map['sinceCursor'] as int,
-      limit: map['limit'] as int? ?? 100,
-      collections: (map['collections'] as List?)?.cast<String>(),
-    );
-  }
-
   @override
   String toString() =>
       'PullRequest(dbId: $dbId, sinceCursor: $sinceCursor, limit: $limit)';
@@ -70,33 +71,12 @@ class PullRequest {
 /// Pull response from server containing operations.
 @immutable
 class PullResponse {
-  /// List of operations since the requested cursor.
-  final List<SyncOperation> ops;
-
-  /// Cursor position for next pull request.
-  ///
-  /// Use this value as `sinceCursor` in the next request.
-  final int nextCursor;
-
-  /// Whether more operations are available.
-  ///
-  /// If true, client should make another pull request with `nextCursor`.
-  final bool hasMore;
-
+  /// Creates a pull response.
   const PullResponse({
     required this.ops,
     required this.nextCursor,
     required this.hasMore,
   });
-
-  /// Serializes to CBOR bytes.
-  Uint8List toBytes() {
-    return encodeToCbor({
-      'ops': [for (final op in ops) _syncOpToMap(op)],
-      'nextCursor': nextCursor,
-      'hasMore': hasMore,
-    });
-  }
 
   /// Deserializes from CBOR bytes.
   factory PullResponse.fromBytes(Uint8List bytes) {
@@ -110,6 +90,28 @@ class PullResponse {
       nextCursor: map['nextCursor'] as int,
       hasMore: map['hasMore'] as bool,
     );
+  }
+
+  /// List of operations since the requested cursor.
+  final List<SyncOperation> ops;
+
+  /// Cursor position for next pull request.
+  ///
+  /// Use this value as `sinceCursor` in the next request.
+  final int nextCursor;
+
+  /// Whether more operations are available.
+  ///
+  /// If true, client should make another pull request with `nextCursor`.
+  final bool hasMore;
+
+  /// Serializes to CBOR bytes.
+  Uint8List toBytes() {
+    return encodeToCbor({
+      'ops': [for (final op in ops) _syncOpToMap(op)],
+      'nextCursor': nextCursor,
+      'hasMore': hasMore,
+    });
   }
 
   @override

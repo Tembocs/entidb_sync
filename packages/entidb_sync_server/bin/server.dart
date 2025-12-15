@@ -2,6 +2,7 @@
 
 import 'dart:io';
 
+import 'package:entidb/entidb.dart';
 import 'package:entidb_sync_server/entidb_sync_server.dart';
 import 'package:logging/logging.dart';
 import 'package:shelf/shelf.dart' as shelf;
@@ -16,11 +17,15 @@ void main(List<String> arguments) async {
   final config = ServerConfig.fromEnvironment();
   log.info('Starting EntiDB Sync Server with config: $config');
 
-  // Create sync service
-  final syncService = SyncService();
+  // Create persistent sync service using EntiDB
+  log.info('Opening EntiDB at ${config.dbPath}...');
+  final db = await EntiDB.open(path: config.dbPath);
+  final syncService = EntiDBSyncService(db: db);
+  await syncService.initialize();
+  log.info('EntiDB sync service initialized with persistent storage');
 
   // Create router
-  final router = createSyncRouter(syncService);
+  final router = createSyncRouterWithEntiDB(syncService);
 
   // Configure JWT authentication
   final jwtConfig = JwtAuthConfig(

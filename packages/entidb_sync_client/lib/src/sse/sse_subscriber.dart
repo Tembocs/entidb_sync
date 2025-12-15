@@ -30,6 +30,9 @@ enum SseEventType {
 
 /// Represents an event received from the SSE stream.
 class SseReceivedEvent {
+  /// Creates an SSE received event.
+  const SseReceivedEvent({required this.type, required this.data, this.id});
+
   /// Event type.
   final SseEventType type;
 
@@ -38,9 +41,6 @@ class SseReceivedEvent {
 
   /// Raw data payload.
   final Map<String, dynamic> data;
-
-  /// Creates an SSE received event.
-  const SseReceivedEvent({required this.type, this.id, required this.data});
 
   /// Gets the cursor from an operations or connected event.
   int? get cursor => data['cursor'] as int?;
@@ -66,30 +66,6 @@ class SseReceivedEvent {
 
 /// Minimal operation info sent via SSE (without full entity data).
 class SseOperationInfo {
-  /// Operation ID.
-  final int opId;
-
-  /// Database ID.
-  final String dbId;
-
-  /// Device ID that created the operation.
-  final String deviceId;
-
-  /// Collection name.
-  final String collection;
-
-  /// Entity ID.
-  final String entityId;
-
-  /// Operation type.
-  final OperationType opType;
-
-  /// Entity version.
-  final int entityVersion;
-
-  /// Server timestamp.
-  final int timestampMs;
-
   /// Creates SSE operation info.
   const SseOperationInfo({
     required this.opId,
@@ -118,6 +94,30 @@ class SseOperationInfo {
       timestampMs: map['timestampMs'] as int,
     );
   }
+
+  /// Operation ID.
+  final int opId;
+
+  /// Database ID.
+  final String dbId;
+
+  /// Device ID that created the operation.
+  final String deviceId;
+
+  /// Collection name.
+  final String collection;
+
+  /// Entity ID.
+  final String entityId;
+
+  /// Operation type.
+  final OperationType opType;
+
+  /// Entity version.
+  final int entityVersion;
+
+  /// Server timestamp.
+  final int timestampMs;
 }
 
 /// Connection state for SSE subscriber.
@@ -137,6 +137,17 @@ enum SseConnectionState {
 
 /// Configuration for SSE subscriber.
 class SseSubscriberConfig {
+  /// Creates SSE subscriber configuration.
+  const SseSubscriberConfig({
+    required this.serverUrl,
+    required this.deviceId,
+    this.collections,
+    this.authToken,
+    this.autoReconnect = true,
+    this.reconnectDelay = const Duration(seconds: 3),
+    this.maxReconnectAttempts = 0,
+  });
+
   /// Server base URL.
   final String serverUrl;
 
@@ -157,21 +168,13 @@ class SseSubscriberConfig {
 
   /// Maximum reconnection attempts (0 = infinite).
   final int maxReconnectAttempts;
-
-  /// Creates SSE subscriber configuration.
-  const SseSubscriberConfig({
-    required this.serverUrl,
-    required this.deviceId,
-    this.collections,
-    this.authToken,
-    this.autoReconnect = true,
-    this.reconnectDelay = const Duration(seconds: 3),
-    this.maxReconnectAttempts = 0,
-  });
 }
 
 /// Subscribes to server-sent events for real-time sync updates.
 class SseSubscriber {
+  /// Creates an SSE subscriber.
+  SseSubscriber(this.config);
+
   /// Configuration.
   final SseSubscriberConfig config;
 
@@ -203,9 +206,6 @@ class SseSubscriber {
 
   /// Reconnection timer.
   Timer? _reconnectTimer;
-
-  /// Creates an SSE subscriber.
-  SseSubscriber(this.config);
 
   /// Stream of received events.
   Stream<SseReceivedEvent> get events => _eventController.stream;

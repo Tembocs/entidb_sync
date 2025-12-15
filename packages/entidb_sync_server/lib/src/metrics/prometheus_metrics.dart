@@ -22,6 +22,14 @@ enum MetricType {
 
 /// A single metric value with optional labels.
 class MetricSample {
+  /// Creates a metric sample with name and value.
+  const MetricSample({
+    required this.name,
+    required this.value,
+    this.labels = const {},
+    this.timestamp,
+  });
+
   /// Metric name.
   final String name;
 
@@ -33,13 +41,6 @@ class MetricSample {
 
   /// Optional timestamp.
   final DateTime? timestamp;
-
-  const MetricSample({
-    required this.name,
-    required this.value,
-    this.labels = const {},
-    this.timestamp,
-  });
 
   /// Formats as Prometheus line.
   String toPrometheusLine() {
@@ -72,6 +73,13 @@ class MetricSample {
 
 /// Metric definition with help and type.
 class MetricDefinition {
+  /// Creates a metric definition with name, help, and type.
+  const MetricDefinition({
+    required this.name,
+    required this.help,
+    required this.type,
+  });
+
   /// Metric name.
   final String name;
 
@@ -81,12 +89,6 @@ class MetricDefinition {
   /// Metric type.
   final MetricType type;
 
-  const MetricDefinition({
-    required this.name,
-    required this.help,
-    required this.type,
-  });
-
   /// Formats TYPE and HELP lines.
   String toPrometheusHeader() {
     return '# HELP $name $help\n# TYPE $name ${type.name}';
@@ -95,11 +97,16 @@ class MetricDefinition {
 
 /// Counter metric that only increases.
 class Counter {
-  final String name;
-  final String help;
-  final Map<String, double> _values = {};
-
+  /// Creates a counter with the given name and help text.
   Counter({required this.name, required this.help});
+
+  /// Metric name.
+  final String name;
+
+  /// Help text.
+  final String help;
+
+  final Map<String, double> _values = {};
 
   /// Increments the counter.
   void inc({Map<String, String> labels = const {}, double value = 1}) {
@@ -123,6 +130,7 @@ class Counter {
     }).toList();
   }
 
+  /// Returns the metric definition for this counter.
   MetricDefinition get definition =>
       MetricDefinition(name: name, help: help, type: MetricType.counter);
 
@@ -146,11 +154,16 @@ class Counter {
 
 /// Gauge metric that can increase or decrease.
 class Gauge {
-  final String name;
-  final String help;
-  final Map<String, double> _values = {};
-
+  /// Creates a gauge with the given name and help text.
   Gauge({required this.name, required this.help});
+
+  /// Metric name.
+  final String name;
+
+  /// Help text.
+  final String help;
+
+  final Map<String, double> _values = {};
 
   /// Sets the gauge value.
   void set(double value, {Map<String, String> labels = const {}}) {
@@ -185,6 +198,7 @@ class Gauge {
     }).toList();
   }
 
+  /// Returns the metric definition for this gauge.
   MetricDefinition get definition =>
       MetricDefinition(name: name, help: help, type: MetricType.gauge);
 
@@ -208,14 +222,7 @@ class Gauge {
 
 /// Histogram metric for distributions.
 class Histogram {
-  final String name;
-  final String help;
-  final List<double> buckets;
-
-  final Map<String, List<int>> _bucketCounts = {};
-  final Map<String, double> _sums = {};
-  final Map<String, int> _counts = {};
-
+  /// Creates a histogram with the given name, help text, and bucket boundaries.
   Histogram({
     required this.name,
     required this.help,
@@ -233,6 +240,19 @@ class Histogram {
       10,
     ],
   });
+
+  /// Metric name.
+  final String name;
+
+  /// Help text.
+  final String help;
+
+  /// Bucket boundaries.
+  final List<double> buckets;
+
+  final Map<String, List<int>> _bucketCounts = {};
+  final Map<String, double> _sums = {};
+  final Map<String, int> _counts = {};
 
   /// Observes a value.
   void observe(double value, {Map<String, String> labels = const {}}) {
@@ -336,6 +356,7 @@ class Histogram {
     return samples;
   }
 
+  /// Returns the metric definition for this histogram.
   MetricDefinition get definition =>
       MetricDefinition(name: name, help: help, type: MetricType.histogram);
 
@@ -359,89 +380,98 @@ class Histogram {
 
 /// Sync server metrics registry.
 class SyncMetrics {
+  SyncMetrics._();
+
   /// Singleton instance.
   static final SyncMetrics instance = SyncMetrics._();
 
-  SyncMetrics._();
-
-  // Request counters
+  /// Total number of sync requests counter.
   final requestsTotal = Counter(
     name: 'entidb_sync_requests_total',
     help: 'Total number of sync requests',
   );
 
+  /// Total number of failed sync requests counter.
   final requestErrors = Counter(
     name: 'entidb_sync_request_errors_total',
     help: 'Total number of failed sync requests',
   );
 
-  // Operation counters
+  /// Total number of operations pushed by clients counter.
   final operationsPushed = Counter(
     name: 'entidb_sync_operations_pushed_total',
     help: 'Total number of operations pushed by clients',
   );
 
+  /// Total number of operations pulled by clients counter.
   final operationsPulled = Counter(
     name: 'entidb_sync_operations_pulled_total',
     help: 'Total number of operations pulled by clients',
   );
 
+  /// Total number of conflicts detected counter.
   final conflictsDetected = Counter(
     name: 'entidb_sync_conflicts_total',
     help: 'Total number of conflicts detected',
   );
 
-  // Connection gauges
+  /// Number of active connections gauge.
   final activeConnections = Gauge(
     name: 'entidb_sync_active_connections',
     help: 'Number of active connections',
   );
 
+  /// Number of active SSE connections gauge.
   final sseConnections = Gauge(
     name: 'entidb_sync_sse_connections',
     help: 'Number of active SSE connections',
   );
 
+  /// Number of active WebSocket connections gauge.
   final wsConnections = Gauge(
     name: 'entidb_sync_websocket_connections',
     help: 'Number of active WebSocket connections',
   );
 
-  // State gauges
+  /// Current size of the operation log gauge.
   final oplogSize = Gauge(
     name: 'entidb_sync_oplog_size',
     help: 'Current size of the operation log',
   );
 
+  /// Current server cursor position gauge.
   final serverCursor = Gauge(
     name: 'entidb_sync_server_cursor',
     help: 'Current server cursor position',
   );
 
-  // Latency histograms
+  /// Request duration histogram in seconds.
   final requestDuration = Histogram(
     name: 'entidb_sync_request_duration_seconds',
     help: 'Request duration in seconds',
     buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
   );
 
+  /// Push operation duration histogram in seconds.
   final pushDuration = Histogram(
     name: 'entidb_sync_push_duration_seconds',
     help: 'Push operation duration in seconds',
   );
 
+  /// Pull operation duration histogram in seconds.
   final pullDuration = Histogram(
     name: 'entidb_sync_pull_duration_seconds',
     help: 'Pull operation duration in seconds',
   );
 
-  // Size histograms
+  /// Request body size histogram in bytes.
   final requestSize = Histogram(
     name: 'entidb_sync_request_size_bytes',
     help: 'Request body size in bytes',
     buckets: [100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000],
   );
 
+  /// Response body size histogram in bytes.
   final responseSize = Histogram(
     name: 'entidb_sync_response_size_bytes',
     help: 'Response body size in bytes',

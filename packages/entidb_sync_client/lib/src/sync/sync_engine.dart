@@ -33,6 +33,23 @@ enum SyncState {
 
 /// Result of a sync cycle.
 class SyncResult {
+  /// Creates a sync result.
+  ///
+  /// - [state]: Final sync state.
+  /// - [pulledCount]: Number of operations pulled.
+  /// - [pushedCount]: Number of operations pushed.
+  /// - [conflicts]: Conflicts encountered.
+  /// - [error]: Error if sync failed.
+  /// - [serverCursor]: New server cursor after sync.
+  const SyncResult({
+    required this.state,
+    this.pulledCount = 0,
+    this.pushedCount = 0,
+    this.conflicts = const [],
+    this.error,
+    this.serverCursor = 0,
+  });
+
   /// Final sync state.
   final SyncState state;
 
@@ -51,15 +68,6 @@ class SyncResult {
   /// New server cursor after sync.
   final int serverCursor;
 
-  const SyncResult({
-    required this.state,
-    this.pulledCount = 0,
-    this.pushedCount = 0,
-    this.conflicts = const [],
-    this.error,
-    this.serverCursor = 0,
-  });
-
   /// Whether sync completed successfully.
   bool get isSuccess => state == SyncState.synced;
 
@@ -67,7 +75,8 @@ class SyncResult {
   bool get hasConflicts => conflicts.isNotEmpty;
 
   @override
-  String toString() => 'SyncResult(state: $state, pulled: $pulledCount, '
+  String toString() =>
+      'SyncResult(state: $state, pulled: $pulledCount, '
       'pushed: $pushedCount, conflicts: ${conflicts.length})';
 }
 
@@ -75,14 +84,24 @@ class SyncResult {
 typedef ApplyOperationCallback = Future<void> Function(SyncOperation op);
 
 /// Callback for getting pending local operations to push.
-typedef GetPendingOperationsCallback = Future<List<SyncOperation>> Function(
-    int sinceOpId);
+typedef GetPendingOperationsCallback =
+    Future<List<SyncOperation>> Function(int sinceOpId);
 
 /// Callback for handling conflicts.
 typedef ConflictHandler = Future<SyncOperation?> Function(Conflict conflict);
 
 /// Sync engine orchestrates the pull-then-push sync cycle.
 class SyncEngine {
+  /// Creates a sync engine.
+  ///
+  /// - [transport]: HTTP transport for server communication.
+  /// - [clientInfo]: Client info for handshake.
+  SyncEngine({
+    required SyncHttpTransport transport,
+    required ClientInfo clientInfo,
+  }) : _transport = transport,
+       _clientInfo = clientInfo;
+
   final SyncHttpTransport _transport;
   final Logger _log = Logger('SyncEngine');
 
@@ -97,10 +116,14 @@ class SyncEngine {
 
   /// Current sync state.
   SyncState _state = SyncState.idle;
+
+  /// Gets the current sync state.
   SyncState get state => _state;
 
   /// Stream controller for state changes.
   final _stateController = StreamController<SyncState>.broadcast();
+
+  /// Stream of state changes.
   Stream<SyncState> get stateStream => _stateController.stream;
 
   /// Current cursor positions.
@@ -109,12 +132,6 @@ class SyncEngine {
 
   /// Client info for handshake.
   final ClientInfo _clientInfo;
-
-  SyncEngine({
-    required SyncHttpTransport transport,
-    required ClientInfo clientInfo,
-  })  : _transport = transport,
-        _clientInfo = clientInfo;
 
   /// Gets the current server cursor.
   int get serverCursor => _serverCursor;
@@ -151,7 +168,8 @@ class SyncEngine {
       pushedCount = pushResult.pushed;
       conflicts.addAll(pushResult.conflicts);
       _log.info(
-          'Pushed $pushedCount operations, ${conflicts.length} conflicts');
+        'Pushed $pushedCount operations, ${conflicts.length} conflicts',
+      );
 
       _setState(SyncState.synced);
       return SyncResult(
@@ -181,10 +199,7 @@ class SyncEngine {
     bool hasMore = true;
 
     while (hasMore) {
-      final response = await _transport.pull(
-        sinceCursor: _serverCursor,
-        limit: 100,
-      );
+      final response = await _transport.pull(sinceCursor: _serverCursor);
 
       for (final op in response.ops) {
         if (onApplyOperation != null) {

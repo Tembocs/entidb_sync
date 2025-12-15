@@ -11,15 +11,7 @@ import 'package:meta/meta.dart';
 /// synchronized. Both client and server maintain cursors.
 @immutable
 class SyncCursor {
-  /// Last synchronized operation ID.
-  final int lastOpId;
-
-  /// Server cursor position (for pull operations).
-  final int serverCursor;
-
-  /// Timestamp of last successful sync.
-  final DateTime lastSyncAt;
-
+  /// Creates a sync cursor with the given values.
   const SyncCursor({
     required this.lastOpId,
     required this.serverCursor,
@@ -34,6 +26,24 @@ class SyncCursor {
       lastSyncAt: DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
+
+  /// Deserializes from JSON.
+  factory SyncCursor.fromJson(Map<String, dynamic> json) {
+    return SyncCursor(
+      lastOpId: json['lastOpId'] as int,
+      serverCursor: json['serverCursor'] as int,
+      lastSyncAt: DateTime.parse(json['lastSyncAt'] as String),
+    );
+  }
+
+  /// Last synchronized operation ID.
+  final int lastOpId;
+
+  /// Server cursor position (for pull operations).
+  final int serverCursor;
+
+  /// Timestamp of last successful sync.
+  final DateTime lastSyncAt;
 
   /// Creates a copy with updated values.
   SyncCursor copyWith({
@@ -50,22 +60,14 @@ class SyncCursor {
 
   /// Serializes to JSON.
   Map<String, dynamic> toJson() => {
-        'lastOpId': lastOpId,
-        'serverCursor': serverCursor,
-        'lastSyncAt': lastSyncAt.toIso8601String(),
-      };
-
-  /// Deserializes from JSON.
-  factory SyncCursor.fromJson(Map<String, dynamic> json) {
-    return SyncCursor(
-      lastOpId: json['lastOpId'] as int,
-      serverCursor: json['serverCursor'] as int,
-      lastSyncAt: DateTime.parse(json['lastSyncAt'] as String),
-    );
-  }
+    'lastOpId': lastOpId,
+    'serverCursor': serverCursor,
+    'lastSyncAt': lastSyncAt.toIso8601String(),
+  };
 
   @override
-  String toString() => 'SyncCursor('
+  String toString() =>
+      'SyncCursor('
       'lastOpId: $lastOpId, '
       'serverCursor: $serverCursor, '
       'lastSyncAt: $lastSyncAt'

@@ -31,6 +31,7 @@ export 'package:entidb_sync_protocol/entidb_sync_protocol.dart';
 // Oplog service (WAL observation)
 export 'src/oplog/sync_oplog_service.dart';
 export 'src/oplog/sync_oplog_service_impl.dart';
+export 'src/oplog/wal_adapter.dart';
 
 // Offline queue
 export 'src/queue/offline_queue.dart';

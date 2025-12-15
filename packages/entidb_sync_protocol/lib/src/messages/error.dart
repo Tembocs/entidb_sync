@@ -83,24 +83,7 @@ enum SyncErrorCode {
 /// information for client-side handling.
 @immutable
 class ErrorResponse {
-  /// The error code identifying the type of error.
-  final SyncErrorCode code;
-
-  /// Human-readable error message.
-  final String message;
-
-  /// Optional detailed description for debugging.
-  final String? details;
-
-  /// Optional field that caused the error.
-  final String? field;
-
-  /// Optional retry-after hint in seconds (for rate limiting).
-  final int? retryAfterSeconds;
-
-  /// Optional request ID for tracing.
-  final String? requestId;
-
+  /// Creates an error response.
   const ErrorResponse({
     required this.code,
     required this.message,
@@ -224,18 +207,6 @@ class ErrorResponse {
     );
   }
 
-  /// Serializes to CBOR bytes.
-  Uint8List toBytes() {
-    return encodeToCbor({
-      'code': code.value,
-      'message': message,
-      if (details != null) 'details': details,
-      if (field != null) 'field': field,
-      if (retryAfterSeconds != null) 'retryAfterSeconds': retryAfterSeconds,
-      if (requestId != null) 'requestId': requestId,
-    });
-  }
-
   /// Deserializes from CBOR bytes.
   factory ErrorResponse.fromBytes(Uint8List bytes) {
     final map = decodeFromCbor(bytes);
@@ -247,6 +218,36 @@ class ErrorResponse {
       retryAfterSeconds: map['retryAfterSeconds'] as int?,
       requestId: map['requestId'] as String?,
     );
+  }
+
+  /// The error code identifying the type of error.
+  final SyncErrorCode code;
+
+  /// Human-readable error message.
+  final String message;
+
+  /// Optional detailed description for debugging.
+  final String? details;
+
+  /// Optional field that caused the error.
+  final String? field;
+
+  /// Optional retry-after hint in seconds (for rate limiting).
+  final int? retryAfterSeconds;
+
+  /// Optional request ID for tracing.
+  final String? requestId;
+
+  /// Serializes to CBOR bytes.
+  Uint8List toBytes() {
+    return encodeToCbor({
+      'code': code.value,
+      'message': message,
+      if (details != null) 'details': details,
+      if (field != null) 'field': field,
+      if (retryAfterSeconds != null) 'retryAfterSeconds': retryAfterSeconds,
+      if (requestId != null) 'requestId': requestId,
+    });
   }
 
   /// Whether this error is retryable.

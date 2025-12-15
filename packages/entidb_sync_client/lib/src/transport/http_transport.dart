@@ -12,6 +12,23 @@ import 'package:retry/retry.dart';
 
 /// Configuration for HTTP transport.
 class TransportConfig {
+  /// Creates a transport configuration.
+  ///
+  /// - [serverUrl]: Base URL of the sync server.
+  /// - [dbId]: Database identifier.
+  /// - [deviceId]: Device identifier.
+  /// - [authTokenProvider]: Optional function to provide auth token.
+  /// - [timeout]: Request timeout duration.
+  /// - [maxRetries]: Maximum retry attempts.
+  const TransportConfig({
+    required this.serverUrl,
+    required this.dbId,
+    required this.deviceId,
+    this.authTokenProvider,
+    this.timeout = const Duration(seconds: 30),
+    this.maxRetries = 3,
+  });
+
   /// Base URL of the sync server.
   final Uri serverUrl;
 
@@ -29,28 +46,21 @@ class TransportConfig {
 
   /// Maximum retry attempts.
   final int maxRetries;
-
-  const TransportConfig({
-    required this.serverUrl,
-    required this.dbId,
-    required this.deviceId,
-    this.authTokenProvider,
-    this.timeout = const Duration(seconds: 30),
-    this.maxRetries = 3,
-  });
 }
 
 /// HTTP transport for sync protocol.
 class SyncHttpTransport {
+  /// Creates an HTTP transport.
+  ///
+  /// - [config]: Transport configuration.
+  /// - [client]: Optional HTTP client for testing.
+  SyncHttpTransport({required TransportConfig config, http.Client? client})
+    : _config = config,
+      _client = client ?? http.Client();
+
   final TransportConfig _config;
   final http.Client _client;
   final Logger _log = Logger('SyncHttpTransport');
-
-  SyncHttpTransport({
-    required TransportConfig config,
-    http.Client? client,
-  })  : _config = config,
-        _client = client ?? http.Client();
 
   /// Performs handshake with the server.
   Future<HandshakeResponse> handshake(ClientInfo clientInfo) async {
@@ -106,20 +116,17 @@ class SyncHttpTransport {
     );
 
     try {
-      final response = await r.retry(
-        () async {
-          final resp = await _client
-              .post(url, headers: headers, body: body)
-              .timeout(_config.timeout);
+      final response = await r.retry(() async {
+        final resp = await _client
+            .post(url, headers: headers, body: body)
+            .timeout(_config.timeout);
 
-          if (resp.statusCode >= 500) {
-            throw http.ClientException('Server error: ${resp.statusCode}');
-          }
+        if (resp.statusCode >= 500) {
+          throw http.ClientException('Server error: ${resp.statusCode}');
+        }
 
-          return resp;
-        },
-        retryIf: (e) => e is http.ClientException,
-      );
+        return resp;
+      }, retryIf: (e) => e is http.ClientException);
 
       if (response.statusCode != 200) {
         throw SyncTransportException(
@@ -130,7 +137,8 @@ class SyncHttpTransport {
       }
 
       _log.fine(
-          'Response: ${response.statusCode} (${response.bodyBytes.length} bytes)');
+        'Response: ${response.statusCode} (${response.bodyBytes.length} bytes)',
+      );
       return Uint8List.fromList(response.bodyBytes);
     } catch (e) {
       _log.warning('Request failed: $e');
@@ -163,18 +171,25 @@ class SyncHttpTransport {
 
 /// Exception thrown when transport fails.
 class SyncTransportException implements Exception {
+  /// Creates a transport exception.
+  ///
+  /// - [message]: Error description.
+  /// - [statusCode]: HTTP status code if available.
+  /// - [body]: Response body if available.
+  SyncTransportException(this.message, {this.statusCode, this.body});
+
+  /// Error message.
   final String message;
+
+  /// HTTP status code.
   final int? statusCode;
+
+  /// Response body.
   final String? body;
 
-  SyncTransportException(
-    this.message, {
-    this.statusCode,
-    this.body,
-  });
-
   @override
-  String toString() => 'SyncTransportException: $message'
+  String toString() =>
+      'SyncTransportException: $message'
       '${statusCode != null ? ' (status: $statusCode)' : ''}'
       '${body != null ? '\nBody: $body' : ''}';
 }

@@ -23,6 +23,50 @@ enum OperationType {
 /// across EntiDB instances.
 @immutable
 class SyncOperation {
+  /// Creates a sync operation.
+  const SyncOperation({
+    required this.opId,
+    required this.dbId,
+    required this.deviceId,
+    required this.collection,
+    required this.entityId,
+    required this.opType,
+    required this.entityVersion,
+    required this.timestampMs,
+    this.entityCbor,
+  });
+
+  /// Deserializes from CBOR bytes.
+  factory SyncOperation.fromBytes(Uint8List bytes) {
+    final cborValue = cbor.decode(bytes);
+    if (cborValue is! CborMap) {
+      throw const FormatException('Invalid SyncOperation: expected CBOR map');
+    }
+
+    return SyncOperation(
+      opId: (cborValue[CborString('opId')] as CborInt).toInt(),
+      dbId: (cborValue[CborString('dbId')] as CborString).toString(),
+      deviceId: (cborValue[CborString('deviceId')] as CborString).toString(),
+      collection: (cborValue[CborString('collection')] as CborString)
+          .toString(),
+      entityId: (cborValue[CborString('entityId')] as CborString).toString(),
+      opType: OperationType.values.firstWhere(
+        (e) =>
+            e.name ==
+            (cborValue[CborString('opType')] as CborString).toString(),
+      ),
+      entityVersion: (cborValue[CborString('entityVersion')] as CborInt)
+          .toInt(),
+      entityCbor:
+          (cborValue[CborString('entityCbor')] as CborBytes?)?.bytes != null
+          ? Uint8List.fromList(
+              (cborValue[CborString('entityCbor')] as CborBytes).bytes,
+            )
+          : null,
+      timestampMs: (cborValue[CborString('timestampMs')] as CborInt).toInt(),
+    );
+  }
+
   /// Local operation ID (monotonic, per device).
   final int opId;
 
@@ -53,18 +97,6 @@ class SyncOperation {
   /// Timestamp in milliseconds since epoch (informational only).
   final int timestampMs;
 
-  const SyncOperation({
-    required this.opId,
-    required this.dbId,
-    required this.deviceId,
-    required this.collection,
-    required this.entityId,
-    required this.opType,
-    required this.entityVersion,
-    this.entityCbor,
-    required this.timestampMs,
-  });
-
   /// Serializes to CBOR bytes.
   Uint8List toBytes() {
     final map = <CborValue, CborValue>{
@@ -85,38 +117,9 @@ class SyncOperation {
     return Uint8List.fromList(cbor.encode(CborMap(map)));
   }
 
-  /// Deserializes from CBOR bytes.
-  factory SyncOperation.fromBytes(Uint8List bytes) {
-    final cborValue = cbor.decode(bytes);
-    if (cborValue is! CborMap) {
-      throw FormatException('Invalid SyncOperation: expected CBOR map');
-    }
-
-    return SyncOperation(
-      opId: (cborValue[CborString('opId')] as CborInt).toInt(),
-      dbId: (cborValue[CborString('dbId')] as CborString).toString(),
-      deviceId: (cborValue[CborString('deviceId')] as CborString).toString(),
-      collection:
-          (cborValue[CborString('collection')] as CborString).toString(),
-      entityId: (cborValue[CborString('entityId')] as CborString).toString(),
-      opType: OperationType.values.firstWhere(
-        (e) =>
-            e.name ==
-            (cborValue[CborString('opType')] as CborString).toString(),
-      ),
-      entityVersion:
-          (cborValue[CborString('entityVersion')] as CborInt).toInt(),
-      entityCbor:
-          (cborValue[CborString('entityCbor')] as CborBytes?)?.bytes != null
-              ? Uint8List.fromList(
-                  (cborValue[CborString('entityCbor')] as CborBytes).bytes)
-              : null,
-      timestampMs: (cborValue[CborString('timestampMs')] as CborInt).toInt(),
-    );
-  }
-
   @override
-  String toString() => 'SyncOperation('
+  String toString() =>
+      'SyncOperation('
       'opId: $opId, '
       'collection: $collection, '
       'entityId: $entityId, '

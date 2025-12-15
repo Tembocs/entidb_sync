@@ -35,31 +35,15 @@ import 'sync_engine.dart';
 
 /// Configuration for automatic sync behavior.
 class SyncManagerConfig {
-  /// Debounce duration before triggering sync after local changes.
+  /// Creates sync manager configuration.
   ///
-  /// Prevents excessive sync cycles during rapid local edits.
-  final Duration debounceDelay;
-
-  /// Interval for periodic sync attempts.
-  ///
-  /// Set to [Duration.zero] to disable periodic sync.
-  final Duration periodicSyncInterval;
-
-  /// Maximum operations to sync per push cycle.
-  final int maxBatchSize;
-
-  /// Whether to sync immediately on start.
-  final bool syncOnStart;
-
-  /// Whether to automatically retry failed syncs.
-  final bool autoRetry;
-
-  /// Delay before retrying after a failed sync.
-  final Duration retryDelay;
-
-  /// Maximum retry attempts before giving up.
-  final int maxRetryAttempts;
-
+  /// - [debounceDelay]: Debounce duration before triggering sync.
+  /// - [periodicSyncInterval]: Interval for periodic sync attempts.
+  /// - [maxBatchSize]: Maximum operations to sync per push cycle.
+  /// - [syncOnStart]: Whether to sync immediately on start.
+  /// - [autoRetry]: Whether to automatically retry failed syncs.
+  /// - [retryDelay]: Delay before retrying after a failed sync.
+  /// - [maxRetryAttempts]: Maximum retry attempts before giving up.
   const SyncManagerConfig({
     this.debounceDelay = const Duration(milliseconds: 500),
     this.periodicSyncInterval = const Duration(minutes: 5),
@@ -89,6 +73,31 @@ class SyncManagerConfig {
       autoRetry = true,
       retryDelay = const Duration(seconds: 30),
       maxRetryAttempts = 3;
+
+  /// Debounce duration before triggering sync after local changes.
+  ///
+  /// Prevents excessive sync cycles during rapid local edits.
+  final Duration debounceDelay;
+
+  /// Interval for periodic sync attempts.
+  ///
+  /// Set to [Duration.zero] to disable periodic sync.
+  final Duration periodicSyncInterval;
+
+  /// Maximum operations to sync per push cycle.
+  final int maxBatchSize;
+
+  /// Whether to sync immediately on start.
+  final bool syncOnStart;
+
+  /// Whether to automatically retry failed syncs.
+  final bool autoRetry;
+
+  /// Delay before retrying after a failed sync.
+  final Duration retryDelay;
+
+  /// Maximum retry attempts before giving up.
+  final int maxRetryAttempts;
 }
 
 /// State of the sync manager.
@@ -111,6 +120,25 @@ enum SyncManagerState {
 
 /// Statistics about sync operations.
 class SyncStats {
+  /// Creates sync statistics.
+  ///
+  /// - [totalPushed]: Total operations synced (pushed).
+  /// - [totalPulled]: Total operations received (pulled).
+  /// - [totalConflicts]: Total conflicts encountered.
+  /// - [syncCycles]: Number of sync cycles completed.
+  /// - [failedAttempts]: Number of failed sync attempts.
+  /// - [lastSyncTime]: Last successful sync time.
+  /// - [pendingCount]: Current pending operations count.
+  const SyncStats({
+    this.totalPushed = 0,
+    this.totalPulled = 0,
+    this.totalConflicts = 0,
+    this.syncCycles = 0,
+    this.failedAttempts = 0,
+    this.lastSyncTime,
+    this.pendingCount = 0,
+  });
+
   /// Total operations synced (pushed).
   final int totalPushed;
 
@@ -132,16 +160,7 @@ class SyncStats {
   /// Current pending operations count.
   final int pendingCount;
 
-  const SyncStats({
-    this.totalPushed = 0,
-    this.totalPulled = 0,
-    this.totalConflicts = 0,
-    this.syncCycles = 0,
-    this.failedAttempts = 0,
-    this.lastSyncTime,
-    this.pendingCount = 0,
-  });
-
+  /// Creates a copy of this [SyncStats] with the given fields replaced.
   SyncStats copyWith({
     int? totalPushed,
     int? totalPulled,
@@ -173,41 +192,6 @@ class SyncStats {
 /// Integrates WAL observation, offline queue, and sync engine into a
 /// unified automatic sync system.
 class SyncManager {
-  final SyncOplogService _oplogService;
-  final OfflineQueue _offlineQueue;
-  final SyncEngine _syncEngine;
-  final SyncManagerConfig _config;
-  final Logger _log = Logger('SyncManager');
-
-  /// Current state.
-  SyncManagerState _state = SyncManagerState.stopped;
-  SyncManagerState get state => _state;
-
-  /// Sync statistics.
-  SyncStats _stats = const SyncStats();
-  SyncStats get stats => _stats;
-
-  /// State change stream.
-  final _stateController = StreamController<SyncManagerState>.broadcast();
-  Stream<SyncManagerState> get stateStream => _stateController.stream;
-
-  /// Sync result stream.
-  final _syncResultController = StreamController<SyncResult>.broadcast();
-  Stream<SyncResult> get syncResultStream => _syncResultController.stream;
-
-  /// Subscriptions.
-  StreamSubscription<SyncOperation>? _oplogSubscription;
-  StreamSubscription<SyncState>? _engineSubscription;
-  Timer? _debounceTimer;
-  Timer? _periodicTimer;
-  Timer? _retryTimer;
-
-  /// Retry tracking.
-  int _retryAttempts = 0;
-
-  /// Lock to prevent concurrent syncs.
-  bool _syncInProgress = false;
-
   /// Creates a sync manager with the given components.
   ///
   /// - [oplogService]: Observes local WAL for changes.
@@ -226,6 +210,49 @@ class SyncManager {
     // Wire up the sync engine callbacks
     _syncEngine.onGetPendingOperations = _getPendingOperations;
   }
+
+  final SyncOplogService _oplogService;
+  final OfflineQueue _offlineQueue;
+  final SyncEngine _syncEngine;
+  final SyncManagerConfig _config;
+  final Logger _log = Logger('SyncManager');
+
+  /// Current state.
+  SyncManagerState _state = SyncManagerState.stopped;
+
+  /// Gets the current state.
+  SyncManagerState get state => _state;
+
+  /// Sync statistics.
+  SyncStats _stats = const SyncStats();
+
+  /// Gets the sync statistics.
+  SyncStats get stats => _stats;
+
+  /// State change stream.
+  final _stateController = StreamController<SyncManagerState>.broadcast();
+
+  /// Stream of state changes.
+  Stream<SyncManagerState> get stateStream => _stateController.stream;
+
+  /// Sync result stream.
+  final _syncResultController = StreamController<SyncResult>.broadcast();
+
+  /// Stream of sync results.
+  Stream<SyncResult> get syncResultStream => _syncResultController.stream;
+
+  /// Subscriptions.
+  StreamSubscription<SyncOperation>? _oplogSubscription;
+  StreamSubscription<SyncState>? _engineSubscription;
+  Timer? _debounceTimer;
+  Timer? _periodicTimer;
+  Timer? _retryTimer;
+
+  /// Retry tracking.
+  int _retryAttempts = 0;
+
+  /// Lock to prevent concurrent syncs.
+  bool _syncInProgress = false;
 
   /// Starts automatic synchronization.
   ///
@@ -353,7 +380,7 @@ class SyncManager {
   Future<SyncResult> syncNow() async {
     if (_syncInProgress) {
       _log.warning('Sync already in progress');
-      return SyncResult(state: SyncState.idle);
+      return const SyncResult(state: SyncState.idle);
     }
 
     return _performSync();
@@ -424,7 +451,7 @@ class SyncManager {
   /// Performs the actual sync cycle.
   Future<SyncResult> _performSync() async {
     if (_syncInProgress) {
-      return SyncResult(state: SyncState.idle);
+      return const SyncResult(state: SyncState.idle);
     }
 
     _syncInProgress = true;

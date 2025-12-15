@@ -17,16 +17,14 @@ Uint8List encodeToCbor(Map<String, dynamic> data) {
 
 /// Encodes a list of maps to CBOR bytes.
 Uint8List encodeListToCbor(List<Map<String, dynamic>> list) {
-  final cborArray = CborList([
-    for (final item in list) _encodeValue(item),
-  ]);
+  final cborArray = CborList([for (final item in list) _encodeValue(item)]);
   return Uint8List.fromList(cbor.encode(cborArray));
 }
 
 /// Recursively converts a Dart value to a CborValue.
 CborValue _encodeValue(dynamic value) {
   if (value == null) {
-    return CborNull();
+    return const CborNull();
   } else if (value is bool) {
     return CborBool(value);
   } else if (value is int) {
@@ -46,7 +44,8 @@ CborValue _encodeValue(dynamic value) {
     });
   } else {
     throw ArgumentError(
-        'Unsupported type for CBOR encoding: ${value.runtimeType}');
+      'Unsupported type for CBOR encoding: ${value.runtimeType}',
+    );
   }
 }
 
@@ -59,5 +58,9 @@ CborMap createCborMap(Map<String, CborValue> entries) {
 
 /// Helper to wrap common Dart types as CborValue.
 extension CborValueHelpers on Object? {
+  /// Converts this value to its CBOR representation.
+  ///
+  /// Supports null, bool, int, double, String, Uint8List, List, and
+  /// Map<String, dynamic>. Throws [ArgumentError] for unsupported types.
   CborValue toCbor() => _encodeValue(this);
 }

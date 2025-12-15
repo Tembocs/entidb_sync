@@ -10,21 +10,7 @@ import 'package:shelf/shelf.dart';
 
 /// Configuration for rate limiting.
 class RateLimitConfig {
-  /// Maximum requests per time window.
-  final int maxRequests;
-
-  /// Time window duration.
-  final Duration window;
-
-  /// Whether to include rate limit headers in response.
-  final bool includeHeaders;
-
-  /// Paths exempt from rate limiting.
-  final List<String> exemptPaths;
-
-  /// Whether to rate limit by IP address (vs global).
-  final bool perClient;
-
+  /// Creates rate limit configuration.
   const RateLimitConfig({
     this.maxRequests = 100,
     this.window = const Duration(minutes: 1),
@@ -48,19 +34,38 @@ class RateLimitConfig {
       includeHeaders = true,
       exemptPaths = const ['/health'],
       perClient = true;
+
+  /// Maximum requests per time window.
+  final int maxRequests;
+
+  /// Time window duration.
+  final Duration window;
+
+  /// Whether to include rate limit headers in response.
+  final bool includeHeaders;
+
+  /// Paths exempt from rate limiting.
+  final List<String> exemptPaths;
+
+  /// Whether to rate limit by IP address (vs global).
+  final bool perClient;
 }
 
 /// Token bucket for rate limiting.
 class TokenBucket {
+  /// Creates a token bucket.
+  TokenBucket({required this.maxTokens, required this.refillInterval})
+    : _tokens = maxTokens,
+      _lastRefill = DateTime.now();
+
+  /// Maximum tokens in the bucket.
   final int maxTokens;
+
+  /// Duration between refills.
   final Duration refillInterval;
 
   int _tokens;
   DateTime _lastRefill;
-
-  TokenBucket({required this.maxTokens, required this.refillInterval})
-    : _tokens = maxTokens,
-      _lastRefill = DateTime.now();
 
   /// Attempts to consume a token.
   ///
@@ -105,17 +110,7 @@ class TokenBucket {
 
 /// Rate limiter that manages token buckets per client.
 class RateLimiter {
-  final RateLimitConfig config;
-
-  /// Token buckets per client identifier.
-  final Map<String, TokenBucket> _buckets = {};
-
-  /// Global bucket for non-per-client limiting.
-  late final TokenBucket _globalBucket;
-
-  /// Timer for cleaning up stale buckets.
-  Timer? _cleanupTimer;
-
+  /// Creates a rate limiter.
   RateLimiter(this.config) {
     _globalBucket = TokenBucket(
       maxTokens: config.maxRequests,
@@ -128,6 +123,18 @@ class RateLimiter {
       (_) => _cleanup(),
     );
   }
+
+  /// Rate limit configuration.
+  final RateLimitConfig config;
+
+  /// Token buckets per client identifier.
+  final Map<String, TokenBucket> _buckets = {};
+
+  /// Global bucket for non-per-client limiting.
+  late final TokenBucket _globalBucket;
+
+  /// Timer for cleaning up stale buckets.
+  Timer? _cleanupTimer;
 
   /// Checks if a request is allowed.
   ///
@@ -173,6 +180,14 @@ class RateLimiter {
 
 /// Result of a rate limit check.
 class RateLimitResult {
+  /// Creates a rate limit result.
+  const RateLimitResult({
+    required this.allowed,
+    required this.remaining,
+    required this.limit,
+    required this.resetIn,
+  });
+
   /// Whether the request is allowed.
   final bool allowed;
 
@@ -184,13 +199,6 @@ class RateLimitResult {
 
   /// Time until rate limit resets.
   final Duration resetIn;
-
-  const RateLimitResult({
-    required this.allowed,
-    required this.remaining,
-    required this.limit,
-    required this.resetIn,
-  });
 
   /// Gets rate limit headers.
   Map<String, String> get headers => {

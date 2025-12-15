@@ -6,10 +6,8 @@ library;
 import 'dart:async';
 import 'dart:io';
 
-import 'package:entidb/entidb.dart' hide OperationType;
-import 'package:entidb/src/engine/wal/wal_constants.dart';
-import 'package:entidb/src/engine/wal/wal_reader.dart';
-import 'package:entidb/src/engine/wal/wal_record.dart';
+import 'package:entidb/entidb.dart' hide OperationType, DataOperationPayload;
+// ignore: implementation_imports
 import 'package:entidb/src/engine/wal/wal_writer.dart';
 import 'package:entidb_sync_client/entidb_sync_client.dart';
 import 'package:test/test.dart';
@@ -17,11 +15,9 @@ import 'package:test/test.dart';
 void main() {
   group('SyncOplogServiceImpl', () {
     late Directory tempDir;
-    late String walPath;
 
     setUp(() async {
       tempDir = await Directory.systemTemp.createTemp('oplog_test_');
-      walPath = '${tempDir.path}/test.wal';
     });
 
     tearDown(() async {
